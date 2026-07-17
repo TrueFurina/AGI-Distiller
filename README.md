@@ -9,6 +9,8 @@
 [![Claude Code](https://img.shields.io/badge/Claude_Code-marketplace-a78bfa)](https://docs.claude.com/en/docs/claude-code/plugin-marketplaces)
 [![Codex CLI](https://img.shields.io/badge/Codex_CLI-compatible-10A37F)](https://github.com/openai/codex)
 
+> **🌐 [中文版 README](README.zh.md)**
+
 ---
 
 ## 🌟 Vision
