@@ -1,0 +1,10 @@
+{
+  "name": "agi-distiller",
+  "version": "0.1.0",
+  "description": "AGI Distiller — 知识蒸馏系统。从高质量技术内容中自动提取痛点与解法，沉淀为跨平台 Agent Skill。Knowledge distillation system: extract pain points & solutions from high-quality technical content, precipitate into cross-platform agent skills.",
+  "skills": "./skills",
+  "license": "MIT",
+  "author": "AGI Distiller Community",
+  "homepage": "https://github.com/agi-distiller/agi-distiller",
+  "tags": ["agent-skills", "knowledge-distillation", "cli-agent", "ai-coding", "chinese"]
+}
