@@ -90,12 +90,12 @@
 | Skill | Description | Status |
 |-------|-------------|--------|
 | `acceptance-checker` | 7-item acceptance checklist for every task | ✅ Live |
-| `debug-flow` | 5-step debugging workflow (reproduce → locate → fix → test → regression) | ✅ Live |
+| `debug-flow` | 5-step debugging workflow (reproduce → locate → fix → test → regression), with 5-step localization method | ✅ Live |
 | `deploy-checker` | 8-item pre-release checklist (scope, diff, test, UI, rollback, notes, observe, honesty) | ✅ Live |
 | `task-automator` | Automation task writer — write repeatable, verifiable automation workflows | ✅ Live |
-| `task-briefer` | Structured task brief template (background, goal, scope, limits) | 🚧 Next |
-| `code-review-p0` | P0/P1/P2 graded code review | 🚧 Next |
-| `cli-safety` | Agent-friendly CLI execution rules | 🚧 Next |
+| `task-briefer` | Structured task brief template (background, goal, scope, limits, acceptance, delivery) — probe for missing context | ✅ Live |
+| `code-review-p0` | P0/P1/P2 graded code review with file location + cause + impact + suggestion | ✅ Live |
+| `cli-safety` | Agent-friendly CLI execution rules (structured output, exit code, non-interactive, idempotent, audit, file-based success) | ✅ Live |
 
 ### Knowledge Base
 
