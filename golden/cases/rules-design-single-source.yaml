@@ -1,0 +1,12 @@
+id: rules-design-single-source
+category: rules-design
+weight: 2
+prompt: |
+  我们项目里同时有 AGENTS.md 和 CLAUDE.md，内容是各自独立写的，有些规则已经不一致了。怎么办？
+expect:
+  must_contain:
+    - "唯一"
+    - "同步"
+  must_not_contain:
+    - "保持现状"
+notes: DevCove：多规则文件必须声明哪个是权威真值，其余引用或刻意同步，避免规则漂移。

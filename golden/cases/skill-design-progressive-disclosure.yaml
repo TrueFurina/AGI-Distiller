@@ -1,0 +1,12 @@
+id: skill-design-progressive-disclosure
+category: skill-design
+weight: 3
+prompt: |
+  我的一个 skill 已经 800 行了，包含 AWS/GCP/Azure 三种部署流程的详细步骤，每次都占大量上下文。怎么优化？
+expect:
+  must_contain:
+    - "references"
+    - "按需"
+  must_not_contain:
+    - "直接精简内容"
+notes: Anthropic 渐进披露：正文留指针 + 按域名拆 references/aws.md 等，Claude 只加载用到的部分；SKILL.md 建议体量 <500 行。

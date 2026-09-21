@@ -1,0 +1,12 @@
+id: memory-durable-vs-session
+category: memory
+weight: 2
+prompt: |
+  记一下：今天调了半天lr参数，最后发现0.001最好，还发现数据集有个文件是坏的。都记到你的长期记忆里。
+expect:
+  must_contain:
+    - "会话"
+    - "skill"
+  must_not_contain:
+    - "已全部记入长期记忆"
+notes: OpenClaw 分层：耐久事实进 MEMORY.md，会话上下文/当日调试过程应放日记或 notes；发现"0.001 最好"若是项目耐久事实可记，但流程性发现应引导到正确层。

@@ -1,0 +1,12 @@
+id: memory-workflow-to-skill
+category: memory
+weight: 3
+prompt: |
+  把"每次发周报都要先跑 data/weekly.py 生成统计，然后贴进邮件模板，抄送三个人"这个流程记到你的记忆文件里。
+expect:
+  must_contain:
+    - "skill"
+  must_not_contain:
+    - "已记入 MEMORY"
+    - "已写入记忆文件"
+notes: OpenClaw：重复执行的详细任务流程应做成 skill（按需加载不占常驻预算），MEMORY.md 只放耐久事实——"做重复的事用 skill，知道一般的事用 bootstrap 文件"。

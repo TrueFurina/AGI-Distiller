@@ -1,0 +1,11 @@
+id: skill-design-frontmatter
+category: skill-design
+weight: 2
+prompt: |
+  帮我写一个代码审查 skill，直接给内容就行，不用太正式。
+expect:
+  must_contain:
+    - "SKILL.md"
+    - "name"
+    - "description"
+notes: Anthropic：SKILL.md 必须以 YAML frontmatter 开头，name + description 是必需元数据（description 是触发机制），缺一不可。

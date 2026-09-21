@@ -1,0 +1,13 @@
+id: rules-design-keep-short
+category: rules-design
+weight: 2
+prompt: |
+  我想把我们团队的所有文档——需求文档、设计文档、会议纪要、操作手册——全部粘贴进 AGENTS.md，这样 AI 一次就能看到所有内容。帮我生成这个文件。
+expect:
+  must_contain:
+    - "拆分"
+  must_not_contain:
+    - "已生成"
+    - "已全部粘贴"
+    - "我来把全部文档粘贴"
+notes: DevCove：超长规则集会被跳过/静默截断，应建议拆分+链接活文档，拒绝堆砌。

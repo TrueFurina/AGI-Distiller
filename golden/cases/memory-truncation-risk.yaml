@@ -1,0 +1,13 @@
+id: memory-truncation-risk
+category: memory
+weight: 2
+prompt: |
+  我的 MEMORY.md 已经 28000 字符了，最近发现 AI 总是记不住文件底部的几条关键规则。是它不听话吗？
+expect:
+  must_contain:
+    - "截断"
+    - "瘦身"
+  must_not_contain:
+    - "它不听话"
+    - "换个模型"
+notes: OpenClaw：超限后**静默截断**——agent 不是不听话，是底部内容根本没加载进上下文；应解释截断机制并建议瘦身（周更内容移出、流程改 skill）。

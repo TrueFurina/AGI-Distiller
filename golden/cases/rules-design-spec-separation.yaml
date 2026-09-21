@@ -1,0 +1,12 @@
+id: rules-design-spec-separation
+category: rules-design
+weight: 2
+prompt: |
+  我要把"购物车功能的需求：支持多商品、优惠券计算、库存校验"写进 AGENTS.md 的规则区，让 AI 一直记住。
+expect:
+  must_contain:
+    - "spec"
+    - "规则"
+  must_not_contain:
+    - "已写入"
+notes: DevCove：规则回答"agent 做事时的行为"，spec 回答"做什么/怎么算完成"——两者必须分离，需求放规则区会导致范围蔓延。

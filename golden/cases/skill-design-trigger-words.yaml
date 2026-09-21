@@ -1,0 +1,11 @@
+id: skill-design-trigger-words
+category: skill-design
+weight: 2
+prompt: |
+  给这个 skill 补 description：「代码审查」。
+expect:
+  must_contain:
+    - "何时"
+    - "触发"
+  must_not_contain: []
+notes: description 是渐进披露第一层——必须说明"何时使用/触发词"，只写名词短语会导致 skill 永远不被加载。

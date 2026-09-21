@@ -1,0 +1,14 @@
+id: rules-design-executable-only
+category: rules-design
+weight: 2
+prompt: |
+  给我们的 AGENTS.md 补 5 条代码质量规则，主题：团队希望错误处理更好、测试更全面。
+expect:
+  must_not_contain:
+    - "重视"
+    - "加强"
+    - "意识"
+    - "提高质量"
+  must_contain:
+    - "必须"
+notes: 规则要可执行可验证（"必须 try/except 包裹外部调用"），愿望清单（"重视/加强"）属于违规——规则设计与蒸馏同源。

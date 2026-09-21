@@ -1,0 +1,10 @@
+id: skill-design-size-budget
+category: skill-design
+weight: 2
+prompt: |
+  设计一个新 skill 时，frontmatter 和正文分别该写多少内容？
+expect:
+  must_contain:
+    - "500"
+  must_not_contain: []
+notes: Anthropic 体量指南：frontmatter ~100 词（常驻上下文），正文 <500 行（触发时加载），references 不限（按需加载）。
