@@ -1,0 +1,69 @@
+# .pre-commit-config.yaml — 通用项目门禁模板
+# 用法：cp 到项目根目录 → pre-commit install
+# 必需：pip install pre-commit && pre-commit install
+# 门禁脚本放在 scripts/pre-commit/ 下（见同目录 scripts/pre-commit/）
+
+repos:
+  # ── 本地钩子（门禁脚本，放在项目 scripts/pre-commit/ 下）──
+  - repo: local
+    hooks:
+      # ① 密钥/凭据扫描（fail-closed：命中即拦截）
+      - id: secrets-scan
+        name: 密钥/凭据扫描
+        entry: python scripts/pre-commit/secrets_scan.py
+        language: system
+        types: [text]
+        exclude: ^(.gitignore|.*\.lock|\.example\.env)$
+        stages: [commit]
+
+      # ② 诚实口径扫描（fail-closed：假水位即拦截）
+      - id: honesty-scan
+        name: 诚实口径扫描
+        entry: python scripts/pre-commit/honesty_scan.py --cached
+        language: system
+        types: [text]
+        stages: [commit]
+
+      # ③ 口径数字对齐检查（fail-closed：文档数字不与代码真值对齐即拦截）
+      - id: caliber-check
+        name: 口径数字对齐检查
+        entry: python scripts/pre-commit/caliber_check.py --cached
+        language: system
+        types: [text]
+        stages: [commit]
+
+      # ④ 结构守卫（fail-closed：根级/目录平铺即拦截）
+      - id: structure-guard
+        name: 目录结构守卫
+        entry: python scripts/pre-commit/structure_guard.py
+        language: system
+        types: [file]
+        stages: [commit]
+
+  # ── 通用工具钩子（可选，按需开启）──
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: debug-logger
+      - id: detect-private-key
+
+  # ── Python 专用（可选）──
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        args: ['--max-line-length=120', '--extend-ignore=E203,W503']
+        stages: [commit]
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3
+        stages: [commit]
