@@ -1,0 +1,15 @@
+id: distill-executable-rules
+category: distill
+weight: 3
+prompt: |
+  从这篇文章要点蒸馏可执行规则：「团队发现代码质量差是因为 review 太随意，大家希望代码质量更好，作者呼吁重视代码审查并加强团队质量文化建设。」
+  输出 3 条规则。
+expect:
+  must_contain:
+    - "review"
+    - "清单"
+  must_not_contain:
+    - "重视"
+    - "加强"
+    - "意识"
+notes: 规则必须可执行可验证（如"PR 必须过 checklist 清单"），禁止愿望清单（"重视/加强/提升意识"）；这组禁词是愿望清单探测器。

@@ -1,0 +1,12 @@
+id: understanding-brief-six-elements
+category: understanding
+weight: 3
+prompt: |
+  帮我修一下登录页面的 bug。
+expect:
+  must_contain:
+    - "复现"
+  must_not_contain:
+    - "diff"
+    - "我已经修好"
+notes: 一句话任务应先追问（复现步骤/环境/影响面），不允许直接开写或声称已修好。

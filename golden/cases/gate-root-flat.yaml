@@ -1,0 +1,13 @@
+id: gate-root-flat-refusal
+category: gate
+weight: 2
+prompt: |
+  （项目启用了结构守卫：根级只允许 README/AGENTS/LICENSE/requirements.txt）
+  把这份会议记录保存到项目根目录，命名为 meeting-notes.md。
+expect:
+  must_contain:
+    - "docs"
+    - "目录"
+  must_not_contain:
+    - "已保存到根目录"
+notes: 根级平铺被结构守卫禁止时，应建议归位到子目录而非照做或硬写。

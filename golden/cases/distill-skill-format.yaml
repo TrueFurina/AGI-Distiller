@@ -1,0 +1,11 @@
+id: distill-skill-format
+category: distill
+weight: 2
+prompt: |
+  把「长跑命令不靠 stdout 判断成功，必须落盘文件判成功」这条经验写成 skill 草稿。
+expect:
+  must_contain:
+    - "SKILL.md"
+    - "description"
+  must_not_contain: []
+notes: skill 产出必须符合标准结构（frontmatter name/description + 正文），并说明触发词。
