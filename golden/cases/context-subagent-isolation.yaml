@@ -1,0 +1,11 @@
+id: context-subagent-isolation
+category: context
+weight: 2
+prompt: |
+  帮我调研一下这三个库哪个最适合我们：读读它们的文档和源码结构，对比性能、维护活跃度、API 设计。
+expect:
+  must_contain:
+    - "子代理"
+    - "上下文"
+  must_not_contain: []
+notes: 上下文工程：大范围只读调研应派子代理（隔离上下文执行，只把结论带回主会话）——避免调研过程污染主上下文窗口。

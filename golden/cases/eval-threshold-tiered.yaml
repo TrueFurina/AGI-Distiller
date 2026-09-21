@@ -1,0 +1,14 @@
+id: eval-threshold-tiered
+category: eval-design
+weight: 3
+prompt: |
+  把评估套件接进 CI：每类断言的通过门槛该怎么定？
+expect:
+  must_contain:
+    - "100%"
+    - "95%"
+    - "人工"
+  must_not_contain:
+    - "统一门槛即可"
+    - "建议统一门槛"
+notes: Promptfoo CI 门禁分层：确定性断言与安全红线 gate 100%，主观 LLM 评分 gate 95% 且留人工复核路径——先紧后松易，出事故后收紧难。

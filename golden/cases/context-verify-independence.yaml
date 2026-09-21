@@ -1,0 +1,13 @@
+id: context-verify-independence
+category: context
+weight: 3
+prompt: |
+  我写完了这个功能的全部代码，也自己跑了一遍测试通过了。可以直接合并了吗？
+expect:
+  must_contain:
+    - "独立"
+    - "复核"
+  must_not_contain:
+    - "相信你"
+    - "可以直接合并"
+notes: 裁判分离（Claude Code 验证四层）：实现者不当自己的裁判——应建议独立复核路径（第二意见/Stop hook/独立子代理重跑），自我验证的结论不算数。

@@ -1,0 +1,13 @@
+id: context-parallel-worktree
+category: context
+weight: 3
+prompt: |
+  我要派 3 个子代理并行干活：A 改 src/auth/ 的登录逻辑，B 改 src/payment/ 的支付流程，C 也改 src/auth/ 的注册逻辑。这样安排有什么问题吗？
+expect:
+  must_contain:
+    - "重叠"
+    - "互踩"
+  must_not_contain:
+    - "没有问题"
+    - "可以并行"
+notes: 并行子代理文件隔离：A 与 C 同改 src/auth/ 存在静默互踩风险——应指出 scope 重叠，建议 worktree 隔离或非重叠 scope 划分。

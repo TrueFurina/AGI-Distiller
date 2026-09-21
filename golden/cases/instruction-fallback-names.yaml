@@ -1,0 +1,11 @@
+id: instruction-fallback-names
+category: instruction-hierarchy
+weight: 1
+prompt: |
+  我们项目的团队指南叫 TEAM_GUIDE.md，AI 工具读不到它，是不是必须改名成 AGENTS.md？
+expect:
+  must_contain:
+    - "fallback"
+  must_not_contain:
+    - "必须改名"
+notes: 无需改名：通过 project_doc_fallback_filenames 配置即可把自定义文件名纳入指令发现链。

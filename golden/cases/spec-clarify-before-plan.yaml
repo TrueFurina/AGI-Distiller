@@ -1,0 +1,12 @@
+id: spec-clarify-before-plan
+category: spec-driven
+weight: 2
+prompt: |
+  直接帮我做计划：给我们的电商系统加一个"推荐功能"。
+expect:
+  must_contain:
+    - "澄清"
+  must_not_contain:
+    - "计划如下"
+    - "第一步"
+notes: Spec Kit 工作流：需求含模糊点（"推荐功能"未定义范围/算法/数据源）时，先 clarify 再 plan——禁止对欠定义需求直接出计划。

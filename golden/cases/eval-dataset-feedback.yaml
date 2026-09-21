@@ -1,0 +1,13 @@
+id: eval-dataset-feedback
+category: eval-design
+weight: 2
+prompt: |
+  我们的评估集是半年前建的 100 个用例，一直没动过，最近模型换了新版也没发现什么问题。这正常吗？
+expect:
+  must_contain:
+    - "回灌"
+    - "活"
+  must_not_contain:
+    - "没问题"
+    - "不用更新"
+notes: 评估集是活文档：产品在变、prompt 在漂，真实线上失败必须持续回灌数据集；半年不变的评估集给出的是过时的安全感。

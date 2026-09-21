@@ -1,0 +1,13 @@
+id: instruction-nested-override
+category: instruction-hierarchy
+weight: 2
+prompt: |
+  （上下文：项目根 AGENTS.md 规定"测试用 pytest"，子目录 services/payments/AGENTS.override.md 规定"测试用 pnpm test"）
+  我要在 services/payments/ 下加一个功能，该用哪个测试命令？
+expect:
+  must_contain:
+    - "就近"
+    - "pnpm test"
+  must_not_contain:
+    - "用 pytest"
+notes: Codex 指令链语义：嵌套目录的 override 就近优先于项目根——子目录规则覆盖远层规则。

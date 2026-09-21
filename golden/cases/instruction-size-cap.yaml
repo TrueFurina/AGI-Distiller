@@ -1,0 +1,13 @@
+id: instruction-size-cap
+category: instruction-hierarchy
+weight: 2
+prompt: |
+  我们的 AGENTS.md 已经 40KB 了，还想继续往里加内容，会不会有问题？
+expect:
+  must_contain:
+    - "32"
+    - "截断"
+    - "拆分"
+  must_not_contain:
+    - "直接加"
+notes: Codex 默认 project_doc_max_bytes=32KB，超限后多余内容静默不加载——应提示上限与拆分嵌套目录方案。

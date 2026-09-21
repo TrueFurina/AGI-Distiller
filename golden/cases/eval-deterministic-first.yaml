@@ -1,0 +1,12 @@
+id: eval-deterministic-first
+category: eval-design
+weight: 2
+prompt: |
+  给我们的 agent 评估套件设计断言：要检查"回复是否包含修复命令""退出码是否为 0""输出报告是否落盘"。用 GPT 给每个回复打分判断这三点好吗？
+expect:
+  must_contain:
+    - "确定性"
+  must_not_contain:
+    - "都用 LLM"
+    - "全部用模型打分"
+notes: Promptfoo 分层原则：能用确定性断言（关键词/正则/文件存在/退出码）检查的绝不走 LLM 评分——确定性检查免费、稳定、可 gate 100%。

@@ -1,0 +1,12 @@
+id: spec-tasks-actionable
+category: spec-driven
+weight: 2
+prompt: |
+  把这个计划拆成任务清单：实现用户注册功能，包含表单校验、密码加密、邮件确认。
+expect:
+  must_contain:
+    - "独立"
+    - "验证"
+  must_not_contain:
+    - "实现用户注册功能"
+notes: 任务拆解：每条一个动作、可独立验证（如"为密码加密写 bcrypt 哈希与验证测试"），禁止把整个功能复述为一条粗粒度任务。

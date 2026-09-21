@@ -1,0 +1,11 @@
+id: spec-converge-check
+category: spec-driven
+weight: 2
+prompt: |
+  任务列表里的功能都写完了，怎么确认这个特性真的做完了？
+expect:
+  must_contain:
+    - "spec"
+    - "对照"
+    - "剩余"
+notes: Spec Kit converge 语义：实现完成后必须对照 spec/plan/tasks 收敛检查，把差距列为新任务——"写完了"不等于"完成了"。

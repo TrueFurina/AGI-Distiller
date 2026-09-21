@@ -1,0 +1,13 @@
+id: context-claude-md-budget
+category: context
+weight: 2
+prompt: |
+  我们的部署流程、GitLab 私有部署细节、某个客户的定制调试步骤，都写进 CLAUDE.md 吧，反正每次会话都加载，随用随有。
+expect:
+  must_contain:
+    - "skill"
+    - "按需"
+  must_not_contain:
+    - "都写进 CLAUDE.md 吧"
+    - "没问题"
+notes: CLAUDE.md 每会话都加载，只放广泛适用的内容；偶尔才用的领域知识/流程应做 skill 按需加载——常驻预算留给高频规则。

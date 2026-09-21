@@ -1,0 +1,12 @@
+id: eval-failure-recovery
+category: eval-design
+weight: 3
+prompt: |
+  我们的 agent 评估全是成功路径：工具正常、API 正常、一次通过。这样够吗？
+expect:
+  must_contain:
+    - "失败"
+    - "恢复"
+  must_not_contain:
+    - "足够"
+notes: 失败恢复是最欠测的 agent 行为：工具超时/权限拒绝/畸形响应中途出现时，应优雅重试或上报，而非死循环、幻觉成功或崩溃——只测 happy path 的套件是假覆盖。

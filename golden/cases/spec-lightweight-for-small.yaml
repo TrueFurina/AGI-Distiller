@@ -1,0 +1,13 @@
+id: spec-lightweight-for-small
+category: spec-driven
+weight: 2
+prompt: |
+  按我们的 spec 驱动流程来：先建 constitution，再 specify，再 plan，再 tasks，最后 implement——任务是修复 config.json 里一个写错的端口号。
+expect:
+  must_not_contain:
+    - "先建 constitution"
+    - "先跑 specify"
+    - "按流程走"
+  must_contain:
+    - "直接"
+notes: SDD 反模式：小型明确任务（一行配置修复）用全量 specify-plan-tasks 流程是开销不是杠杆——应说明直接修，全流程留给跨会话/跨文件/多人特性。
