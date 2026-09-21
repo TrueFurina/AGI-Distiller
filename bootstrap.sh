@@ -1,22 +1,45 @@
 #!/bin/bash
 # ============================================================
-# AGI-Distiller 项目初始化脚本（按 thinking.md 最佳实践）
-# 用法: bash bootstrap.sh <项目名> [目标目录]
-# 产出: AGENTS.md(薄) + plans/ 三件套 + docs/system-map.md
+# AGI-Distiller 项目初始化统一入口（分桶模板调度器）
+# 用法: bash bootstrap.sh --type <generic|agent|competition|web> <项目名> [目标目录]
+#       bash bootstrap.sh <项目名> [目标目录]          # 默认 generic
+# 产出: AGENTS.md(薄) + plans/ 外脑 + docs/system-map.md + .agents/skills/（按桶）
 # ============================================================
 set -euo pipefail
 
-PROJECT="${1:?用法: bash bootstrap.sh <项目名> [目标目录]}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATE_DIR="$SCRIPT_DIR/templates"
+
+TYPE="generic"
+PROJECT=""
+TARGET=""
+
+# 参数解析：--type <t> <name> [dir] 或 <name> [dir]
+if [ "${1:-}" = "--type" ]; then
+  TYPE="${2:?--type 需要 generic|agent|competition|web}"
+  shift 2
+fi
+PROJECT="${1:?用法: bash bootstrap.sh [--type generic|agent|competition|web] <项目名> [目标目录]}"
 TARGET="${2:-$PROJECT}"
 
 if [ -e "$TARGET" ]; then
   echo "❌ 目标已存在: $TARGET"; exit 1
 fi
 
-mkdir -p "$TARGET/plans" "$TARGET/docs"
-
-# 1. AGENTS.md —— 门禁，不是培训手册（无聊且短，100 行内）
-cat > "$TARGET/AGENTS.md" <<EOF
+case "$TYPE" in
+  agent)
+    bash "$TEMPLATE_DIR/agent-project.sh" "$PROJECT" "$TARGET"
+    ;;
+  competition)
+    bash "$TEMPLATE_DIR/competition.sh" "$PROJECT" "$TARGET"
+    ;;
+  web)
+    bash "$TEMPLATE_DIR/web-app.sh" "$PROJECT" "$TARGET"
+    ;;
+  generic)
+    # ── 通用版（原 bootstrap 逻辑）──
+    mkdir -p "$TARGET/plans" "$TARGET/docs"
+    cat > "$TARGET/AGENTS.md" <<EOF
 # $PROJECT — 项目事实源
 
 ## 这是什么
@@ -38,9 +61,7 @@ cat > "$TARGET/AGENTS.md" <<EOF
 ## 必须问人的事
 - [资金/权限/登录/DDL 变更]
 EOF
-
-# 2. plans/ —— 计划外脑（换项目恢复上下文）
-cat > "$TARGET/plans/current.md" <<'EOF'
+    cat > "$TARGET/plans/current.md" <<'EOF'
 # 当前计划
 
 ## 待办
@@ -55,17 +76,14 @@ cat > "$TARGET/plans/current.md" <<'EOF'
 ## 已完成
 - [ ]
 EOF
-
-cat > "$TARGET/plans/decisions.md" <<'EOF'
+    cat > "$TARGET/plans/decisions.md" <<'EOF'
 # 技术决策记录
 
 | 日期 | 决策 | 原因 | 备选方案 |
 |------|------|------|----------|
 |      |      |      |          |
 EOF
-
-# 3. docs/system-map.md —— 系统地图（你是作者，AI 只是助手）
-cat > "$TARGET/docs/system-map.md" <<'EOF'
+    cat > "$TARGET/docs/system-map.md" <<'EOF'
 # 系统地图
 
 ## 核心领域
@@ -82,11 +100,15 @@ cat > "$TARGET/docs/system-map.md" <<'EOF'
 - 知道就行: 通用工具类
 - 可以不懂: 交互细节、配置模板
 EOF
+    echo "✅ [generic] $PROJECT 初始化完成: $TARGET"
+    echo "   下一步: 填 AGENTS.md 的[占位符]，在 plans/current.md 写第一个任务"
+    ;;
+  *)
+    echo "❌ 未知类型: $TYPE（可选 generic|agent|competition|web）"; exit 1
+    ;;
+esac
 
-# 4. git init（如果是全新目录）
+# 全部桶统一：git init（全新目录）
 if [ ! -d "$TARGET/.git" ]; then
   git -C "$TARGET" init -b main >/dev/null 2>&1 || git -C "$TARGET" init >/dev/null
 fi
-
-echo "✅ 项目 $PROJECT 初始化完成: $TARGET"
-echo "   下一步: 填 AGENTS.md 的[占位符]，在 plans/current.md 写第一个任务"
