@@ -1,0 +1,38 @@
+拆分。一个 800 行的 skill 占上下文的核心原因是它承载了太多不常同时使用的分支逻辑。
+
+## 拆分方向
+
+按**部署目标平台**拆成独立的子 skill：
+
+```
+deploy-aws/
+  SKILL.md          （只保留 AWS 流程）
+deploy-gcp/
+  SKILL.md
+deploy-azure/
+  SKILL.md
+deploy.md           （主入口，只负责路由判断）
+```
+
+主入口 skill 极短，只做一件事——判断目标平台后按需加载对应子 skill：
+
+```markdown
+---
+name: deploy
+description: 按目标平台调用对应部署流程
+---
+
+## 路由
+
+- 目标为 AWS → 读取 `deploy-aws/SKILL.md`
+- 目标为 GCP → 读取 `deploy-gcp/SKILL.md`
+- 目标为 Azure → 读取 `deploy-azure/SKILL.md`
+```
+
+## 关键原则
+
+- **没有部署任务时，三个子 skill 完全不进入上下文**，各自只在被引用时才加载
+- 先抽取**共享部分**（如前置检查、构建、验证）到一个通用模块，避免三份重复
+- 如果单个平台的流程仍然太长，继续按阶段拆（如 `deploy-aws/build.md` + `deploy-aws/infra.md`）
+
+这样实际执行单次部署时，上下文占用通常会降到原来的三分之一甚至更少。

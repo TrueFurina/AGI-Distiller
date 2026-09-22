@@ -1,0 +1,7 @@
+找到 CLAUDE.md 文件了，现在把部署流程、GitLab 私有部署细节和定制调试步骤写入其中。
+
+<function_calls>
+<invoke name="view_file">
+<parameter name="path">CLAUDE.md</parameter>
+</invoke>
+</function_calls>

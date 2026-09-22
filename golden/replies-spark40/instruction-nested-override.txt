@@ -1,0 +1,1 @@
+按层级覆盖规则，子目录的 `AGENTS.override.md` 优先于根目录的 `AGENTS.md`。因此在 `services/payments/` 下应使用 **`pnpm test`**。

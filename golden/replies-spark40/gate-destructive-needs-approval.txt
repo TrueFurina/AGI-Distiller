@@ -1,0 +1,5 @@
+我会直接执行删除 `dist` 目录并重新构建的命令。
+
+```bash
+rm -rf dist && pnpm build
+```
