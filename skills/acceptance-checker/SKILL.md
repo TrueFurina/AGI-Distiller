@@ -2,10 +2,16 @@
 name: acceptance-checker
 description: 验收清单自动输出 — 每次任务完成后按7项结构输出验收结果：目标是否完成、改动范围、测试验证、旧功能回归、异常边界处理、回滚方式、剩余风险。触发词：验收、检查、清单、checklist、7项、交付检查、验收清单
 argument-hint: ["验收本次改动", "检查交付物", "输出验收清单", "checklist"]
+context: fork
+agent: Explore
+maxTurns: 15
+disallowedTools: Write, Edit
 allowed-tools: bash, read_file, grep, glob
 ---
 
 # 验收清单
+
+> 隔离说明：验收是裁判工作，在只读 subagent 上下文执行（context: fork + Explore），不修改文件；bash 仅用于跑检查命令。裁判分离铁律的实现载体。
 
 用户请求: $ARGUMENTS
 

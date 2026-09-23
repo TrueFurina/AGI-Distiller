@@ -1,6 +1,7 @@
 ---
 name: learning-accelerator
 description: 用 AI 工具加速学习新领域——当用户要快速学习新框架/新概念/新领域、准备面试或调研技术选型时触发。触发词：学习、快速掌握、调研学习、10倍速、考我
+allowed-tools: read_file, grep, glob, web_search, web_fetch
 ---
 # AI 加速学习法（10x Learning）
 

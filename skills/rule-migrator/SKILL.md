@@ -1,6 +1,7 @@
 ---
 name: rule-migrator
 description: AI 编程项目规则迁移与多工具同步——当用户要迁移规则文件（Cursor Rules/CLAUDE.md/AGENTS.md）、建立多工具规则同步、或问"规则怎么分文件"时触发。触发词：规则迁移、同步清单、AGENTS.md、CLAUDE.md、Cursor Rules
+allowed-tools: read_file, grep, glob, write_file, edit_file
 ---
 # 规则迁移与多工具同步
 

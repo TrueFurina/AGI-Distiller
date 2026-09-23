@@ -1,6 +1,7 @@
 ---
 name: version-guard
 description: 工作流/配置/应用的版本管理与回滚——当用户要发布/更新工作流或配置（Dify、n8n、CI 配置）、问备份回滚策略、或灰度发布时触发。触发词：版本管理、备份、回滚、灰度、发布版本
+allowed-tools: read_file, grep, glob, write_file, edit_file
 ---
 # 版本管理护栏（发布/备份/回滚/灰度）
 

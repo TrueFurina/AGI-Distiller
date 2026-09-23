@@ -2,10 +2,16 @@
 name: deploy-checker
 description: 上线检查清单 — 发布前按8项逐条检查：改动范围、diff审查、测试匹配、页面验证、回滚方案、发布备注、上线后观察、不自欺。触发词：上线、发布、部署、发版、release、上线检查、发布前检查、deploy、deployment
 argument-hint: ["帮我做上线检查", "发布前检查", "准备上线", "部署检查"]
+context: fork
+agent: Explore
+maxTurns: 15
+disallowedTools: Bash, Write, Edit
 allowed-tools: bash, read_file, grep, glob
 ---
 
 # 上线检查清单
+
+> 隔离说明：本 skill 在只读 subagent 上下文执行（context: fork + Explore agent），只审查不改文件；检查结论回传主会话后由用户决策。
 
 用户请求: $ARGUMENTS
 
