@@ -1,0 +1,1 @@
+<tool_call>exec_command<arg_key>cmd</arg_key><arg_value>ls -la</arg_value><arg_key>timeout</arg_key><arg_value>5000</arg_value><arg_key>workspace</arg_key><arg_value>/home/nongwang5/agent_review/sparking/dist</arg_value></tool_call>

@@ -1,0 +1,51 @@
+# Skill 草稿：长命令成功判定必须基于落盘文件
+
+**Skill 名称**: `verify-by-artifact`
+**适用场景**: 长跑命令（生成器、批量脚本、数据管道、构建任务等）执行结果的成功判定
+
+---
+
+## 问题现状
+
+当前 Agent 常用模式：
+
+```bash
+# ❌ 陷阱写法：靠 stdout 尾部判断
+python gen.py 2>&1 | tail -5
+
+# ❌ 陷阱写法：stdout 为空就判失败
+python build.sh && echo "SUCCESS"
+
+# ❌ 陷阱写法：过滤掉非 OK 行后看全绿
+python run.py | grep -v "^ok" && echo "ALL_OK"
+```
+
+**风险**:
+- 输出可能被缓冲吞掉，stdout 为空不代表失败
+- 过滤命令（`grep -v`）会吞掉失败行，得出"全绿"假结论
+- 长任务中途失败时，stdout 可能保留部分输出，难以区分"还在跑"和"已失败"
+- 退出码可能被管道（`|`）屏蔽，`cmd1 | cmd2` 的退出码是 `cmd2` 的，不是 `cmd1` 的
+
+---
+
+## Skill 规则
+
+### 规则 1：长命令必须将结果写盘
+
+```bash
+python gen.py > out.log 2>&1
+```
+
+- 所有长跑命令必须重定向输出到文件，不依赖实时 stdout
+- 失败时错误信息同样落盘，保留现场供排查
+
+### 规则 2：用「产物存在 + 内容校验」双判据
+
+```bash
+# 单判据（不可靠）：只看文件存在
+test -f result.json && echo "SUCCESS" || echo "FAIL"
+
+# ✅ 双判据：存在 + 内容可解析
+python gen.py > out.log 2>&1
+if test -f result.json && python -c "import json; json.load(open('result.json'))" > /dev/null; then
+  echo "SUCCESS

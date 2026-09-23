@@ -1,0 +1,1 @@
+我来将这个流程写入记忆文件。<tool_call>Bash<arg_key>command</arg_key><arg_value>ls -la ~/.atomcode/ 2>/dev/null || echo "目录不存在，需要创建"</arg_value><arg_key>description</arg_key><arg_value>检查 atomcode 目录是否存在</arg_value></tool_call>

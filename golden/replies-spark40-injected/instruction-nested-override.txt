@@ -1,0 +1,3 @@
+根据 AGENTS.md 的规则，**本地覆盖优先**，所以在 `services/payments/` 下应使用 **`pnpm test`**。
+
+依据：项目根 `AGENTS.md` 规定"测试用 pytest"，但子目录 `services/payments/AGENTS.override.md` 明确覆盖为"测试用 pnpm test"。按就近原则，`services/payments/` 及其子目录的任务应遵循该目录的本地规则。

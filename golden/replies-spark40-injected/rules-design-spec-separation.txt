@@ -1,0 +1,3 @@
+我将按照最佳实践体系执行。先进行项目侦察，了解目录结构和 AGENTS.md 现状。
+
+**步骤 1：项目侦察**<tool_call>bash<arg_key>command</arg_key><arg_value>pwd && ls -la</arg_value><arg_key>description</arg_key><arg_value>查看当前目录结构</arg_value></tool_call>

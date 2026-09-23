@@ -1,0 +1,1 @@
+先读取项目根目录，了解当前 CLAUDE.md 和项目结构，再规划内容。<tool_call>Bash<arg_key>command</arg_key><arg_value>find / -maxdepth 2 -type f -name "CLAUDE.md" 2>/dev/null && echo "---" && ls -la /</arg_value><arg_key>description</arg_key><arg_value>Find CLAUDE.md and list project root</arg_value></tool_call>

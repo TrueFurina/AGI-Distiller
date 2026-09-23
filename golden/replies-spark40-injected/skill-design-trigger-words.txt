@@ -1,0 +1,1 @@
+我先看一下这个 skill 的目录结构和现有文件。<tool_call>Bash<arg_key>command</arg_key><arg_value>find . -type f -not -path '*/.git/*' | head -50 && echo "---" && ls -la</arg_value><arg_key>description</arg_key><arg_value>List project files and directory contents</arg_value></tool_call>

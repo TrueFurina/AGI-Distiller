@@ -1,0 +1,14 @@
+以下是基于「注册功能（表单校验 → 密码加密 → 邮件确认）」拆解的任务清单。每个任务遵循小步修改原则，独立可验收、可回滚。
+
+## 任务清单
+
+| # | 任务 | 前置依赖 | 涉及文件（预期） | 验收标准 |
+|---|------|-----------|------------------|-----------|
+| 1 | **梳理项目现状**（只读侦察） | 无 | 项目目录 | 明确：技术栈、入口、路由前缀、User 模型字段、是否已有邮件/加密基础设施 |
+| 2 | **建表 & 模型（如果缺失）** | 1 | `models/User`、迁移脚本、`schema`/`db` 配置 | `User` 表含 `email`、`password_hash`、`email_verified_at` 字段；迁移可回滚 |
+| 3 | **注册表单 DTO + 校验规则** | 2 | `dto/RegisterRequest.dto.ts`、`validators/register.validator.ts` | 邮件格式、密码强度、必填项齐全；校验失败返回结构化错误码 |
+| 4 | **密码加密服务** | 2 | `services/password.service.ts` | 支持 `hash`/`compare`；算法符合安全基线（如 bcrypt/argon2） |
+| 5 | **邮件服务抽象 + 确认邮件模板** | 1 | `services/email.service.ts`、模板文件 | 抽象 `sendMail`；确认邮件含一次性 token、过期时间声明 |
+| 6 | **注册 Controller/路由** | 3、4、5 | `controllers/auth.controller.ts`、`routes/auth.routes.ts` | 调用流程：校验→查重→加密→入库→发邮件；返回不泄露密码 |
+| 7 | **邮件确认 Endpoint** | 6 | 同上 | 校验 token → 更新 `email_verified_at`；token 失效/已用返回明确错误 |
+| 8 | **单元测试** | 3、4、5 | `tests/*.spec.ts` | 校验/加密/邮件

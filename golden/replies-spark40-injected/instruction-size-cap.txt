@@ -1,0 +1,1 @@
+<tool_call>bash<arg_key>command</arg_key><arg_value>ls -la AGENTS.md && wc -c AGENTS.md && wc -l AGENTS.md</arg_value></tool_call>

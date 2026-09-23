@@ -1,0 +1,1 @@
+按 AGI-Distiller 最佳实践体系执行，先做**项目侦察（只读）**，不动任何代码。<tool_call>bash<arg_key>command</arg_key><arg_value>ls -la</arg_value><arg_key>description</arg_key><arg_value>列出项目根目录结构</arg_value></tool_call>

@@ -1,0 +1,1 @@
+我将首先检查项目结构，以了解当前状态，然后再建立 spec 驱动流程。<tool_call>Bash<arg_key>command</arg_key><arg_value>ls -la && echo "---CONFIG---" && cat config.json 2>/dev/null && echo "---GIT---" && git status 2>/dev/null</arg_value><arg_key>description</arg_key><arg_value>Inspect project structure and config.json</arg_value></tool_call>

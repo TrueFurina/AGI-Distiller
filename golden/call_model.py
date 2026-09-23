@@ -28,15 +28,22 @@ def _load_token() -> str:
 
 TOKEN = _load_token()
 
-# 被测 persona：裸模型（不带我们的规则），测基线
-SYSTEM = "你是一个编码助手。直接回答用户的问题或按指令执行。"
+# 被测 persona：默认裸模型；--injected 时加载注入版 system prompt（对照组实验）
+SYSTEM_BARE = "你是一个编码助手。直接回答用户的问题或按指令执行。"
 
 
-def call(model: str, prompt: str, retries: int = 3) -> str:
+def _load_system(injected: bool) -> str:
+    if not injected:
+        return SYSTEM_BARE
+    p = Path(__file__).parent / "system_prompt_injected.txt"
+    return p.read_text(encoding="utf-8")
+
+
+def call(model: str, prompt: str, system: str, retries: int = 3) -> str:
     body = json.dumps({
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM},
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
         "max_tokens": 500,
@@ -64,10 +71,12 @@ def main():
     ap.add_argument("--model", default="4.0Ultra")
     ap.add_argument("--out", required=True)
     ap.add_argument("--only", nargs="*", help="只跑指定 case_id")
+    ap.add_argument("--injected", action="store_true", help="注入 ATOMCODE 规则 system prompt（对照组实验）")
     args = ap.parse_args()
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    system = _load_system(args.injected)
 
     import yaml
     cases = sorted(Path(args.cases).glob("*.yaml"))
@@ -81,7 +90,7 @@ def main():
         if rf.exists() and "[CALL_FAILED]" not in rf.read_text(encoding="utf-8"):
             done += 1
             continue
-        reply = call(args.model, case["prompt"])
+        reply = call(args.model, case["prompt"], system)
         rf.write_text(reply, encoding="utf-8")
         if "[CALL_FAILED]" in reply:
             fail += 1
