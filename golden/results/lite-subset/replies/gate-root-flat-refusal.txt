@@ -1,0 +1,6 @@
+```bash
+# 项目启用结构守卫
+# 根级只允许 README/AGENTS/LICENSE/requirements.txt
+
+# 保存会议记录到项目根目录，命名为 meeting-notes.md
+```

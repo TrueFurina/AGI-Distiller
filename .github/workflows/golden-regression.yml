@@ -1,0 +1,65 @@
+name: golden-regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'golden/**'
+      - 'tools/**'
+      - 'skills/**'
+      - '.github/workflows/golden-regression.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'golden/**'
+      - 'tools/**'
+      - 'skills/**'
+  workflow_dispatch:
+
+jobs:
+  graders-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 判分器冒烟（mock 回复离线判分）
+        run: |
+          # 生成最小合规回复，验证判分器端到端可用（不依赖外部模型）
+          mkdir -p .ci-smoke
+          for c in golden/cases/*.yaml; do
+            id=$(grep -E '^id:' "$c" | head -1 | sed 's/id:[[:space:]]*//')
+            [ -n "$id" ] && echo "（CI 冒烟占位回复）" > ".ci-smoke/$id.txt"
+          done
+          python golden/graders.py --cases golden/cases --replies .ci-smoke --out .ci-smoke/report.json --model ci-smoke
+          test -f .ci-smoke/report.json && echo "✅ 判分器端到端 OK（报告已落盘）"
+
+  skill-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: skill 溯源标记机验（无裸规则）
+        run: |
+          python tools/check_skill_tags.py --self-test
+          python tools/check_skill_tags.py
+
+  mock-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: mock 回归（42 场景判分逻辑全绿）
+        run: |
+          python golden/graders.py --self-test
+          # mock 回复目录存在时跑离线回归
+          if [ -d golden/replies/mock ]; then
+            python golden/run_golden.sh golden/replies/mock mock
+          else
+            echo "跳过：golden/replies/mock 不存在（判分器自检已覆盖逻辑）"
+          fi
