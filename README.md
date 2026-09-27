@@ -77,30 +77,42 @@
 
 | File | Purpose | Size |
 |------|---------|------|
-| `SOUL.md` | Agent personality (name, character, service targets) | ~905 chars |
-| `AGENTS.md` | Permission matrix + red line rules (core security) | ~2016 chars |
-| `USER.md` | Current user identity and role | ~359 chars |
-| `TOOLS.md` | Tool usage guide | ~1013 chars |
-| `IDENTITY.md` | Agent identity metadata | ~753 chars |
-| `HEARTBEAT.md` | Session / health tracking | ~235 chars |
-| **Total** | | **~5281 chars** |
+| `SOUL.md` | Agent personality (name, character, service targets) | ~1187 chars |
+| `AGENTS.md` | Permission matrix + red line rules (core security) | ~2320 chars |
+| `USER.md` | Current user identity and role | ~639 chars |
+| `TOOLS.md` | Tool usage guide | ~1497 chars |
+| `IDENTITY.md` | Agent identity metadata | ~1064 chars |
+| `HEARTBEAT.md` | Session / health tracking | ~829 chars |
+| **Total** | | **~7536 chars** |
 
 ### Skills (Cross-Platform)
 
 | Skill | Description | Status |
 |-------|-------------|--------|
 | `acceptance-checker` | 7-item acceptance checklist for every task | ✅ Live |
+| `automation-gray-release` | Gray-release discipline for scheduled automations — manual trial first, verify on-disk artifact, then schedule; cost control and silent-failure guards | ✅ Live |
+| `cli-safety` | Agent-friendly CLI execution rules (structured output, exit code, non-interactive, idempotent, audit, file-based success) | ✅ Live |
+| `code-review-p0` | P0/P1/P2 graded code review with file location + cause + impact + suggestion | ✅ Live |
 | `debug-flow` | 5-step debugging workflow (reproduce → locate → fix → test → regression), with 5-step localization method | ✅ Live |
+| `dependency-verify` | Dependency-change verification — installed ≠ works: a successful install or import does not prove the native library loads | ✅ Live |
 | `deploy-checker` | 8-item pre-release checklist (scope, diff, test, UI, rollback, notes, observe, honesty) | ✅ Live |
+| `doc-freshness-check` | Doc-rot detection — keep README/docs in sync with code; stale-marker and terminology-change propagation | ✅ Live |
+| `hook-safety-checker` | Pre-flight for writing, wiring and accepting any hook (pre-commit, PreToolUse, PostToolUse, CI gate); prevents silent hooks | ✅ Live |
+| `learning-accelerator` | Use AI tooling to learn a new field fast — new framework, concept, interview prep, technology survey | ✅ Live |
+| `long-task-resume` | Resumable long-running jobs — checkpoint first, idempotent reruns, sentinel-based success, explicit recovery command | ✅ Live |
+| `memory-layer-router` | Five-layer memory routing decision tree — which layer (SOUL / IDENTITY / USER / MEMORY / daily log / skills) new information belongs to | ✅ Live |
+| `rule-migrator` | Rule-file migration and multi-tool sync (Cursor Rules / CLAUDE.md / AGENTS.md) | ✅ Live |
+| `session-handoff` | Session-handoff artifact — write an evidence-linked, fail-closed handoff file instead of a chat summary | ✅ Live |
 | `task-automator` | Automation task writer — write repeatable, verifiable automation workflows | ✅ Live |
 | `task-briefer` | Structured task brief template (background, goal, scope, limits, acceptance, delivery) — probe for missing context | ✅ Live |
-| `code-review-p0` | P0/P1/P2 graded code review with file location + cause + impact + suggestion | ✅ Live |
-| `cli-safety` | Agent-friendly CLI execution rules (structured output, exit code, non-interactive, idempotent, audit, file-based success) | ✅ Live |
+| `tdd-discipline` | AI pair-programming TDD discipline — red/green cycle constraints, read the diff instead of trusting summaries | ✅ Live |
+| `version-guard` | Version management and rollback for workflows, configs and apps (Dify, n8n, CI config) | ✅ Live |
+| `workspace-isolation` | Multi-workspace context isolation — locate the workspace first, identify foreign files, always use explicit paths | ✅ Live |
 
 ### Knowledge Base
 
 - `sources/` — Index of all distilled content with extraction metadata
-- `rules/ATOMCODE.md` — Comprehensive behavioral specification (12 sections)
+- `rules/ATOMCODE.md` — Comprehensive behavioral specification (14 sections)
 - `DISTILLER.md` — Distillation pipeline specification
 - `ROADMAP.md` — 4-phase development roadmap
 
@@ -111,14 +123,14 @@
 ### Claude Code
 
 ```bash
-/plugin marketplace add agi-distiller/agi-distiller
+/plugin marketplace add TrueFurina/AGI-Distiller
 /plugin install agi-distiller@agi-distiller
 ```
 
 ### Codex CLI
 
 ```bash
-npx skills add agi-distiller/agi-distiller
+npx skills add TrueFurina/AGI-Distiller
 ```
 
 ### Manual (Any Agent)
@@ -169,15 +181,15 @@ See [DISTILLER.md](DISTILLER.md) for the complete pipeline specification.
 
 ### Phase 1: Foundation (Current)
 - [x] Core distillation pipeline design
-- [x] 4 production skills
-- [x] 12-section behavioral specification (ATOMCODE.md)
+- [x] 19 production skills
+- [x] 14-section behavioral specification (ATOMCODE.md)
 - [x] 14 persistent memory entries
-- [x] 22 articles distilled from laodad.com
+- [x] 8 distilled source notes on disk in `sources/` (laodad 4 / wechat 2 / tencent 1 / comment-distillery 1)
 - [x] GitHub repository live
 
 ### Phase 2: Growth (Next 30 days)
-- [ ] 20 skills total
-- [ ] CI pipeline
+- [x] 19 skills total
+- [x] CI pipeline (`.github/workflows/golden-regression.yml`)
 - [ ] Marketplace registration
 - [ ] Automated distillation pipeline
 - [ ] Community contributions
@@ -205,11 +217,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## 📚 Sources Distilled
 
-| Source | Articles | Category | Status |
-|--------|----------|----------|--------|
-| [laodad.com](https://laodad.com) | 22 | AI programming efficiency | ✅ |
-| 卡码大模型 (WeChat) | 1 | CLI & Agent | ✅ |
+| Source | Notes on disk | Category | Status |
+|--------|---------------|----------|--------|
+| [laodad.com](https://laodad.com) | 4 | AI programming efficiency | ✅ |
+| WeChat (personal AI OS, 10x learning) | 2 | Learning & agent workflow | ✅ |
+| 卡码大模型 (Tencent) | 1 | CLI & Agent | ✅ |
+| [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill engineering (sibling project) | ✅ |
 | More coming... | | | 🚧 |
+
+**8 distilled source notes on disk** (`sources/**/*.md`). The count above is verified against the working tree by `scripts/check_doc_consistency.py`.
 
 ---
 

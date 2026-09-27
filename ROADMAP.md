@@ -4,6 +4,24 @@
 >
 > 核心原则：**先跑通最小闭环，再扩张。每步都有可验证的产出。**
 
+> ### ⚠️ 校准说明（2026-09-27）
+>
+> 本文档写于 2026-07，其时间窗（Phase 1 止于 2026.08）**已过期**。下方「目标」列是**愿景，不是成绩**；
+> 涉及现状的数字由 `scripts/check_doc_consistency.py` 强制与工作区一致，不得手写漂移。
+>
+> | 维度 | 规划目标（当时） | 实际（2026-09-27 实测） |
+> |---|---|---|
+> | skill 数（Phase 1 目标 10） | 10 | **19** — 已超额 |
+> | 蒸馏笔记落盘 | 50 篇 | **8 份**（`sources/**/*.md`） |
+> | GitHub Stars | 100 → 1,000 | **无公开数据**（未统计，故不填数） |
+> | 社区渠道发布 | HN / V2EX / Twitter | **未执行** |
+> | marketplace 注册 | 第 4 周 | **未执行** |
+> | CONTRIBUTING.md | 第 1 周 | **仍缺失** |
+>
+> **结论：skill 产出跑赢了规划，分发与社区全面落后于规划。** 下一轮优先级据此重排（见 `NEXT.md`）。
+>
+> 另：下文各周的 checkbox **只对「已核实的项」打勾**；未打勾 ≠ 未做，也可能只是没人核过。不做"看起来都完成了"的粉饰。
+
 ---
 
 ## 总体阶段
@@ -35,23 +53,20 @@ Phase 4: 生态期 (2027.01 → 2027.07) → 300 skill + 100k star
 
 #### 第 1 周（7.17 - 7.24）：发布 MVP
 
-- [ ] 创建 GitHub 仓库 `agi-distiller/agi-distiller`
-- [ ] 提交当前 5 个文件（README.md、plugin.json、DISTILLER.md、2 个 skill）
-- [ ] 完善 README.md 中英文双语
-- [ ] 写 CONTRIBUTING.md 贡献指南
-- [ ] 写 LICENSE（MIT）
-- [ ] 发布到 Hacker News、V2EX、Twitter
-- [ ] 目标：第一个 10 个 star
+- [x] 创建 GitHub 仓库 → **实际落地为 `TrueFurina/AGI-Distiller`**（非此处原写的 `agi-distiller/agi-distiller`）
+- [x] 提交初始文件（README.md、plugin.json、DISTILLER.md、初始 skill）
+- [x] 完善 README.md 中英文双语
+- [ ] 写 CONTRIBUTING.md 贡献指南 ← **仍然缺失**，见 `NEXT.md` P1-2
+- [x] 写 LICENSE（MIT）
+- [ ] 发布到 Hacker News、V2EX、Twitter ← **未执行**
+- [ ] 目标：第一个 10 个 star ← 无公开数据
 
 #### 第 2 周（7.24 - 7.31）：技能扩充
 
-- [ ] 读 laodad.com 新文章（从 7725 开始：上线检查清单）
-- [ ] 写 3 个新 skill：
-  - `task-briefer` — 任务说明模板（来自 7536）
-  - `code-review-p0` — 代码审查分级（来自 7532）
-  - `cli-safety` — CLI 安全执行（来自微信文章）
-- [ ] 验证所有 skill 在 Claude Code + Codex CLI 中可用
-- [ ] 目标：5 个 skill
+- [x] 读 laodad.com 文章（`sources/laodad/` 现有 4 份落盘笔记）
+- [x] 写 3 个新 skill —— `task-briefer` / `code-review-p0` / `cli-safety` **均已存在**
+- [ ] 验证所有 skill 在 Claude Code + Codex CLI 中可用 ← **未做实测**；README 的平台兼容表目前是声明，非实测结果
+- [x] 目标：5 个 skill → 实际已达 19
 
 #### 第 3 周（7.31 - 8.07）：蒸馏管道半自动化
 
@@ -235,32 +250,29 @@ Phase 4: 生态期 (2027.01 → 2027.07) → 300 skill + 100k star
 
 ---
 
-## 关键里程碑
+## 关键里程碑（实际状态 —— ✅ 只给已核实的项）
 
 ```
-Phase 1 — 2026.08.17
-  ✅ 10 skill
-  ✅ 100 star
-  ✅ 蒸馏管道文档化
+Phase 1 — 2026.08.17（已过期）
+  [x] 10 skill               → 实际 19，已超额
+  [ ] 100 star               → 无公开数据（未统计）
+  [x] 蒸馏管道文档化          → DISTILLER.md + rules/ATOMCODE.md（14 节）
+  [ ] CONTRIBUTING.md        → 仍缺失
 
-Phase 2 — 2026.10.17
-  ✅ 30 skill
-  ✅ 1,000 star
-  ✅ 3+ 文章源
-  ✅ 5+ 贡献者
+Phase 2 — 2026.10.17（进行中，剩余时间已不足规划）
+  [ ] 30 skill               → 当前 19
+  [ ] 1,000 star             → 无公开数据
+  [~] 3+ 文章源               → 现有 4 个来源，但落盘仅 8 份笔记
+  [ ] 5+ 贡献者               → 无记录
 
-Phase 3 — 2027.01.17
-  ✅ 100 skill
-  ✅ 10,000 star
-  ✅ 全自动蒸馏管道
-  ✅ 多语言支持
+Phase 3 — 2027.01.17（未启动）
+  [ ] 100 skill / 10,000 star / 全自动管道 / 多语言   → 全部未开始
 
-Phase 4 — 2027.07.17
-  ✅ 300+ skill
-  ✅ 100,000 star
-  ✅ 行业标准
-  ✅ 平台化
+Phase 4 — 2027.07.17（未启动）
+  [ ] 300+ skill / 100,000 star / 行业标准 / 平台化   → 全部未开始
 ```
+
+> 此前本段把四个 Phase 全部打了 ✅ —— 那是**把愿景写成了成绩**。已按实际状态改写。
 
 ---
 

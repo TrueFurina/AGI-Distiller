@@ -7,6 +7,14 @@ on:
       - 'golden/**'
       - 'tools/**'
       - 'skills/**'
+      - 'sources/**'
+      - 'rules/**'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'HEARTBEAT.md'
+      - 'plugin.json'
+      - '.gitignore'
+      - 'scripts/check_doc_consistency.py'
       - '.github/workflows/golden-regression.yml'
   pull_request:
     branches: [main]
@@ -14,6 +22,14 @@ on:
       - 'golden/**'
       - 'tools/**'
       - 'skills/**'
+      - 'sources/**'
+      - 'rules/**'
+      - 'README.md'
+      - 'README.zh.md'
+      - 'HEARTBEAT.md'
+      - 'plugin.json'
+      - '.gitignore'
+      - 'scripts/check_doc_consistency.py'
   workflow_dispatch:
 
 jobs:
@@ -46,6 +62,18 @@ jobs:
         run: |
           python tools/check_skill_tags.py --self-test
           python tools/check_skill_tags.py
+
+  doc-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 文档一致性机验（数字 / 路径 / 命令必须等于工作区事实）
+        run: python scripts/check_doc_consistency.py
+      - name: 文档一致性机验 —— 判据自身的变异验证
+        run: python scripts/check_doc_consistency.py --self-test
 
   mock-regression:
     runs-on: ubuntu-latest

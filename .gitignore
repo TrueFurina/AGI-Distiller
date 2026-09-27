@@ -1,1 +1,7 @@
 .spark_token
+
+# ── Python 编译产物 ──────────────────────────────────────────
+# 曾被误跟踪进仓库（golden/__pycache__、templates/scripts/pre-commit/__pycache__）。
+# 编译产物随本机 Python 版本变化，无跨机器价值，且每次运行都制造假脏文件。
+__pycache__/
+*.py[cod]

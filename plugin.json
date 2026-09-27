@@ -5,6 +5,6 @@
   "skills": "./skills",
   "license": "MIT",
   "author": "AGI Distiller Community",
-  "homepage": "https://github.com/agi-distiller/agi-distiller",
+  "homepage": "https://github.com/TrueFurina/AGI-Distiller",
   "tags": ["agent-skills", "knowledge-distillation", "cli-agent", "ai-coding", "chinese"]
 }

@@ -73,30 +73,42 @@
 
 | 文件 | 用途 | 大小 |
 |------|------|------|
-| `SOUL.md` | Agent 人格设定（名字、性格、服务对象） | ~905 字符 |
-| `AGENTS.md` | 权限矩阵 + 红线规则（核心安全约束） | ~2016 字符 |
-| `USER.md` | 当前用户身份和角色 | ~359 字符 |
-| `TOOLS.md` | 工具使用指南 | ~1013 字符 |
-| `IDENTITY.md` | Agent 身份元数据 | ~753 字符 |
-| `HEARTBEAT.md` | 会话/健康跟踪 | ~235 字符 |
-| **总计** | | **~5281 字符** |
+| `SOUL.md` | Agent 人格设定（名字、性格、服务对象） | ~1187 字符 |
+| `AGENTS.md` | 权限矩阵 + 红线规则（核心安全约束） | ~2320 字符 |
+| `USER.md` | 当前用户身份和角色 | ~639 字符 |
+| `TOOLS.md` | 工具使用指南 | ~1497 字符 |
+| `IDENTITY.md` | Agent 身份元数据 | ~1064 字符 |
+| `HEARTBEAT.md` | 会话/健康跟踪 | ~829 字符 |
+| **总计** | | **~7536 字符** |
 
 ### Skill（跨平台）
 
 | Skill | 描述 | 状态 |
 |-------|------|------|
 | `acceptance-checker` | 7 项验收清单：每次任务完成时自动输出 | ✅ 已发布 |
+| `automation-gray-release` | 自动化任务灰度发布：先低频手动试运行、验证落盘产物、再挂定时；含成本控制与静默失败防护 | ✅ 已发布 |
+| `cli-safety` | CLI 安全执行规则：5 条（结构化输出、退出码验证、防交互、幂等与 dry-run、输出可审计） | ✅ 已发布 |
+| `code-review-p0` | P0/P1/P2 分级代码审查：每条给出文件位置+原因+影响+建议 | ✅ 已发布 |
 | `debug-flow` | 5 步调试流程：复现→定位（含五步定位法）→最小改动→测试→回归 | ✅ 已发布 |
+| `dependency-verify` | 依赖变更验证纪律：installed ≠ works——装成功、import 成功都不等于原生库能加载 | ✅ 已发布 |
 | `deploy-checker` | 8 项上线检查清单：范围、diff、测试、页面、回滚、备注、观察、不自欺 | ✅ 已发布 |
+| `doc-freshness-check` | 文档过期检查：README/文档与代码同步纪律、陈旧标记、口径变更同步链 | ✅ 已发布 |
+| `hook-safety-checker` | hook 安全检查器：写/接/验收任何 hook 前的设计三原则、接线检查单、双向验收用例 | ✅ 已发布 |
+| `learning-accelerator` | 用 AI 工具加速学习新领域：新框架/新概念、面试准备、技术选型调研 | ✅ 已发布 |
+| `long-task-resume` | 长任务断点续跑：检查点先行、幂等可重跑、sentinel 判成功、恢复命令显式化 | ✅ 已发布 |
+| `memory-layer-router` | 记忆五层路由决策树：新信息该写进哪层（SOUL/IDENTITY/USER/MEMORY/日记/skills） | ✅ 已发布 |
+| `rule-migrator` | 规则迁移与多工具同步（Cursor Rules / CLAUDE.md / AGENTS.md） | ✅ 已发布 |
+| `session-handoff` | 会话交接工件：写证据链接、fail-closed 的交接文件，而非聊天总结 | ✅ 已发布 |
 | `task-automator` | 自动化任务编写器：把重复工作写成可稳定执行的自动化流程 | ✅ 已发布 |
 | `task-briefer` | 结构化任务说明模板：6 要素（背景、目标、范围、限制、验收、交付），收到不完整任务主动追问 | ✅ 已发布 |
-| `code-review-p0` | P0/P1/P2 分级代码审查：每条给出文件位置+原因+影响+建议 | ✅ 已发布 |
-| `cli-safety` | CLI 安全执行规则：5+2 条规则（结构化输出、退出码验证、防交互、幂等、审计、落盘判成功、脚本优先） | ✅ 已发布 |
+| `tdd-discipline` | AI 结对 TDD 纪律：红绿循环约束、读 diff 不听总结 | ✅ 已发布 |
+| `version-guard` | 工作流/配置/应用的版本管理与回滚（Dify、n8n、CI 配置） | ✅ 已发布 |
+| `workspace-isolation` | 多工作区上下文隔离：先定位 workspace、外来文件识别、路径全显式 | ✅ 已发布 |
 
 ### 知识库
 
 - `sources/` — 已蒸馏文章索引
-- `rules/ATOMCODE.md` — 完整行为规范（12 节）
+- `rules/ATOMCODE.md` — 完整行为规范（14 节）
 - `DISTILLER.md` — 蒸馏管道规范
 - `ROADMAP.md` — 4 阶段发展路线图
 
@@ -107,14 +119,14 @@
 ### Claude Code
 
 ```bash
-/plugin marketplace add agi-distiller/agi-distiller
+/plugin marketplace add TrueFurina/AGI-Distiller
 /plugin install agi-distiller@agi-distiller
 ```
 
 ### Codex CLI
 
 ```bash
-npx skills add agi-distiller/agi-distiller
+npx skills add TrueFurina/AGI-Distiller
 ```
 
 ### 手动安装（任意 Agent）
@@ -165,15 +177,15 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### Phase 1：筑基期（当前）
 - [x] 核心蒸馏管道设计
-- [x] 4 个生产级 skill
-- [x] 12 节行为规范（ATOMCODE.md）
+- [x] 19 个生产级 skill
+- [x] 14 节行为规范（ATOMCODE.md）
 - [x] 14 条持久化记忆
-- [x] 22 篇 laodad.com 文章蒸馏
+- [x] 8 份蒸馏笔记落盘于 `sources/`（laodad 4 / wechat 2 / tencent 1 / comment-distillery 1）
 - [x] GitHub 仓库上线
 
 ### Phase 2：成长期（未来 30 天）
-- [ ] 20 个 skill
-- [ ] CI 流水线
+- [x] 19 个 skill
+- [x] CI 流水线（`.github/workflows/golden-regression.yml`）
 - [ ] 注册 marketplace
 - [ ] 自动化蒸馏管道
 - [ ] 社区贡献
@@ -199,11 +211,15 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ## 📚 已蒸馏来源
 
-| 来源 | 文章数 | 分类 | 状态 |
+| 来源 | 落盘笔记数 | 分类 | 状态 |
 |--------|----------|----------|--------|
-| [laodad.com](https://laodad.com) | 22 | AI 编程效率 | ✅ |
-| 卡码大模型（微信） | 1 | CLI & Agent | ✅ |
+| [laodad.com](https://laodad.com) | 4 | AI 编程效率 | ✅ |
+| 微信公众号（个人 AI OS、10 倍速学习） | 2 | 学习与 Agent 工作流 | ✅ |
+| 卡码大模型（腾讯） | 1 | CLI & Agent | ✅ |
+| [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill 工程（姊妹项目） | ✅ |
 | 持续扩展中... | | | 🚧 |
+
+**已落盘 8 份蒸馏笔记**（`sources/**/*.md`）。上表数字由 `scripts/check_doc_consistency.py` 对着工作区机验。
 
 ---
 
