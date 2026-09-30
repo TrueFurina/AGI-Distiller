@@ -1,0 +1,17 @@
+{
+  "name": "agi-distiller",
+  "owner": {
+    "name": "TrueFurina",
+    "url": "https://github.com/TrueFurina"
+  },
+  "description": "知识蒸馏系统：从高质量技术内容中自动提取痛点与解法，沉淀为跨平台 Agent Skill。",
+  "plugins": [
+    {
+      "name": "agi-distiller",
+      "source": "./",
+      "description": "19 个跨平台 Agent Skill（验收、调试、上线检查、自动化、任务简报、代码审查、CLI 安全等）",
+      "version": "0.1.0",
+      "tags": ["agent-skills", "knowledge-distillation", "cli-agent", "ai-coding", "chinese"]
+    }
+  ]
+}

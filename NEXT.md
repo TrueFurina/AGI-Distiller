@@ -32,29 +32,35 @@
 
 ---
 
+## P0.2 · 安装链路落地 ✅ 本轮完成（走 A 方案）
+
+| 动作 | 验收证据 |
+|---|---|
+| 新建 `.claude-plugin/marketplace.json` | `claude plugin validate .` → `√ Validation passed` |
+| `plugin.json` 从仓库根移入 `.claude-plugin/` | 单一真相源；机验 D8/D10 路径同步跟进 |
+| 修 manifest 字段缺陷 | validate 报出 `author` 应为 object、`tags` 应属 marketplace entry —— 均已修正 |
+| **真跑安装全链路** | `marketplace add` → `plugin install agi-distiller@agi-distiller` → `plugin details` 输出 `Skills (19)`，19 个 skill 全部加载（Claude Code v2.1.251） |
+| 平台表去虚假 ✅ | 7 个平台原全打 ✅，实际只有 Claude Code 实测过 → 其余 6 个降为 ⚠️ 未实测 |
+| 新增判据 D13 / D14 | marketplace 清单自洽 + 平台表 ✅ 必须有实测证据背书；14/14 变异可检出 |
+
+> **为什么不只靠 validate**：官方明确 `claude plugin validate` 对「source 路径不存在」这类问题**照样通过**，
+> 只有真 install 才暴露。所以本轮是 validate + 实装双验证。
+
+---
+
 ## P1 · 待办（真实存在，非凑数）
 
-### 1. ⚠️ 安装命令从未实测
+### 1. Codex CLI 安装路径未实装
 
-README 写了两条安装路径：
-
-```
-/plugin marketplace add TrueFurina/AGI-Distiller
-npx skills add TrueFurina/AGI-Distiller
-```
-
-但仓库根**没有 `.claude-plugin/marketplace.json`**，这两条命令**在本机从未跑过**。
-按「宣称必须有可复现命令背书」的纪律，二选一：
-
-- **A**：补 marketplace manifest，然后真跑一次，把输出贴进 README；
-- **B**：在 README 把这两条标为「未验证」，并把**已验证**的手动安装（`cp -r skills/* ...`）提到第一屏。
+`npx skills add TrueFurina/AGI-Distiller` —— 已核实 CLI 存在（`skills@1.7.0`）、`add <owner/repo>` 语法合法，
+但本机无 Codex CLI，**未实装**。README 已如实标注。待有 Codex CLI 的机器补验。
 
 ### 2. 无 CONTRIBUTING.md
 
 README 有 Contributing 章节，但仓库里没有独立文件；`.github/` 下除 workflows 外没有 PR / issue 模板。
 对「希望他人投稿 skill」的定位来说，这是硬缺口。
 
-### 3. 一处空目录 + 一处双份脚本
+### 3. 一处空目录 + 一处双份脚本（双份已有机验 D12 盯着）
 
 - **`pipeline/` 是空目录**（git 不跟踪，但本地结构上误导人）—— 要么填内容，要么删。
 - `scripts/pre-commit/` 与 `templates/scripts/pre-commit/` 各有一份**内容相同**的 4 个脚本
@@ -74,7 +80,7 @@ README 有 Contributing 章节，但仓库里没有独立文件；`.github/` 下
 ## P2 · 长线（不设 deadline）
 
 - 多源蒸馏扩展（Medium / arXiv / 公众号），使 `sources/` 的 8 份笔记继续增长
-- marketplace 注册 + skill Web 目录（README Phase 3 目标，**尚未启动**）
+- marketplace **注册已完成**（`.claude-plugin/marketplace.json` + 实装通过）；剩 skill Web 目录（README Phase 3 目标，**尚未启动**）
 - 社区发布（V2EX / 即刻 / 小红书 —— 从未执行）
 - skill 从 19 继续增长 —— **但必须有真实来源，不凑数**。凑数的 skill 会稀释「可溯源」这个唯一卖点。
 

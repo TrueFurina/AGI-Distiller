@@ -123,11 +123,16 @@
 /plugin install agi-distiller@agi-distiller
 ```
 
+> ✅ **实测通过**：本机 Claude Code v2.1.251 跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`
+> 全链路，输出 `Component inventory / Skills (19)`，19 个 skill 全部加载。
+
 ### Codex CLI
 
 ```bash
 npx skills add TrueFurina/AGI-Distiller
 ```
+
+> CLI 存在（`skills@1.7.0`，`add <owner/repo>` 语法已核对）。本机无 Codex CLI，**未实装验证**。
 
 ### 手动安装（任意 Agent）
 
@@ -138,15 +143,17 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### 平台兼容性
 
+> **实测口径** — ✅ 实测 = 在本机跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details` 全链路，19 个 skill 全部被加载（Claude Code v2.1.251）。⚠️ 未实测 = 路径按该平台公开文档填写，本机无对应 CLI，从未真正跑过。
+
 | 平台 | 路径 | 状态 |
 |----------|------|--------|
-| Claude Code | `~/.claude/skills/` | ✅ |
-| Codex CLI | `~/.codex/skills/` | ✅ |
-| Cursor | `.cursor/skills/` | ✅ |
-| Gemini CLI | `.gemini/skills/` | ✅ |
-| GitHub Copilot | `.github/skills/` | ✅ |
-| OpenCode | `~/.config/opencode/skills/` | ✅ |
-| Windsurf | `.windsurf/skills/` | ✅ |
+| Claude Code | `~/.claude/skills/` | ✅ 实测 |
+| Codex CLI | `~/.codex/skills/` | ⚠️ 未实测 |
+| Cursor | `.cursor/skills/` | ⚠️ 未实测 |
+| Gemini CLI | `~/.gemini/skills/` | ⚠️ 未实测 |
+| GitHub Copilot | `.github/skills/` | ⚠️ 未实测 |
+| OpenCode | `~/.config/opencode/skills/` | ⚠️ 未实测 |
+| Windsurf | `.windsurf/skills/` | ⚠️ 未实测 |
 
 ---
 

@@ -257,11 +257,11 @@ def d8_repo_url(v: RepoView):
     if not slug:
         return False, "无法从 git remote 解析 owner/repo"
     problems = []
-    for f in ("README.md", "README.zh.md", "plugin.json"):
+    for f in ("README.md", "README.zh.md", ".claude-plugin/plugin.json"):
         if PHANTOM in v.text(f):
             problems.append(f"{f}: 含幽灵仓库路径 {PHANTOM}")
     try:
-        hp = json.loads(v.text("plugin.json")).get("homepage", "")
+        hp = json.loads(v.text(".claude-plugin/plugin.json")).get("homepage", "")
     except Exception:
         hp = ""
     if slug.lower() not in hp.lower():
@@ -306,7 +306,7 @@ VER_HB = re.compile(r"`(\d+\.\d+\.\d+)`（未打 tag）")
 
 def d10_version_parity(v: RepoView):
     try:
-        pj = json.loads(v.text("plugin.json")).get("version", "")
+        pj = json.loads(v.text(".claude-plugin/plugin.json")).get("version", "")
     except Exception:
         return False, "plugin.json 无法解析"
     m = VER_HB.search(v.text("HEARTBEAT.md"))
@@ -379,6 +379,133 @@ def d12_twin_scripts(v: RepoView):
     return True, f"{len(a)} 个 pre-commit 脚本在两处内容一致"
 
 
+MKT = ".claude-plugin/marketplace.json"
+PLG = ".claude-plugin/plugin.json"
+INSTALL_PLUGIN_CMD = re.compile(r"^\s*/plugin install\s+([A-Za-z0-9_-]+)@([A-Za-z0-9_-]+)\s*$", re.M)
+
+
+def d13_marketplace_manifest(v: RepoView):
+    """Claude Code marketplace 清单必须与 plugin 清单对齐，且 README 的安装命令能解析成同一 (plugin, marketplace) 对。
+
+    背景：此前 README 白纸黑字写着 `/plugin install agi-distiller@agi-distiller`，
+    但仓库里连 `.claude-plugin/` 目录都不存在 —— 这条命令 100% 失败，却从未有人跑过一次。
+    """
+    problems = []
+    mkt_raw, plg_raw = v.text(MKT), v.text(PLG)
+    if not mkt_raw:
+        return False, f"{MKT} 不存在（`/plugin marketplace add` 必然失败）"
+    if not plg_raw:
+        return False, f"{PLG} 不存在"
+    try:
+        mkt = json.loads(mkt_raw)
+        plg = json.loads(plg_raw)
+    except Exception as e:
+        return False, f"manifest JSON 解析失败: {e}"
+    if not mkt.get("name"):
+        problems.append("marketplace.json 缺 name")
+    if not mkt.get("owner"):
+        problems.append("marketplace.json 缺 owner")
+    entries = mkt.get("plugins") or []
+    if not entries:
+        return False, "marketplace.json plugins 为空"
+    e = entries[0]
+    if e.get("name") != plg.get("name"):
+        problems.append(
+            f"entry name={e.get('name')!r} != plugin.json name={plg.get('name')!r}（安装会报 not found）"
+        )
+    if e.get("version") != plg.get("version"):
+        problems.append(
+            f"entry version={e.get('version')!r} != plugin.json version={plg.get('version')!r}"
+        )
+    src = e.get("source")
+    if not isinstance(src, str) or ".." in src:
+        problems.append(f"entry source={src!r} 应为 marketplace 根起的相对路径且不含 '..'")
+    for f in ("README.md", "README.zh.md"):
+        seen = False
+        for line in v.text(f).splitlines():
+            m = INSTALL_PLUGIN_CMD.match(line)
+            if not m:
+                continue
+            seen = True
+            if m.group(1) != plg.get("name") or m.group(2) != mkt.get("name"):
+                problems.append(
+                    f"{f}: 安装命令 {m.group(0).strip()!r} 与 manifest 不符"
+                    f"（应为 {plg.get('name')}@{mkt.get('name')}）"
+                )
+        if not seen:
+            problems.append(f"{f}: 找不到 /plugin install 命令")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"marketplace 清单自洽：{plg.get('name')}@{mkt.get('name')} v{plg.get('version')}"
+
+
+PLAT_ROW = re.compile(r"^\|\s*([^|]+?)\s*\|\s*`[^`]+`\s*\|\s*([^|]+?)\s*\|\s*$", re.M)
+PLAT_HDR_EN = "### Platform Compatibility"
+PLAT_HDR_ZH = "### 平台兼容性"
+VERIFIED_MARK = "✅"
+EVIDENCE_HDR_EN = "Verified"
+EVIDENCE_HDR_ZH = "实测口径"
+
+
+def _plat_section(txt: str, header: str) -> str:
+    if header not in txt:
+        return ""
+    seg = txt.split(header, 1)[1]
+    for stop in ("\n---", "\n## "):
+        if stop in seg:
+            seg = seg.split(stop, 1)[0]
+    return seg
+
+
+def _plat_rows(txt: str, header: str) -> list[tuple[str, str]]:
+    return [(m.group(1), m.group(2)) for m in PLAT_ROW.finditer(_plat_section(txt, header))]
+
+
+def _plat_prose(txt: str, header: str) -> str:
+    seg = _plat_section(txt, header)
+    return "\n".join(l for l in seg.splitlines() if not l.lstrip().startswith("|"))
+
+
+def d14_platform_table_parity(v: RepoView):
+    """中英平台兼容表必须逐行对等，且每个 ✅ 都必须有实测证据背书。
+
+    背景：英文表 6 行、中文表 7 行（英文漏了 Windsurf）；更严重的是 7 个平台全打 ✅，
+    而实际上除了 Claude Code 之外一个都没在本机跑过 —— 把"未经实测"写成了"已支持"。
+    """
+    problems = []
+    en = _plat_rows(v.text("README.md"), PLAT_HDR_EN)
+    zh = _plat_rows(v.text("README.zh.md"), PLAT_HDR_ZH)
+    if not en or not zh:
+        return False, f"平台表缺失（en={len(en)} 行, zh={len(zh)} 行）"
+    en_names = [n for n, _ in en]
+    zh_names = [n for n, _ in zh]
+    if en_names != zh_names:
+        problems.append(
+            f"中英平台不对等：仅英文有 {[x for x in en_names if x not in zh_names]}，"
+            f"仅中文有 {[x for x in zh_names if x not in en_names]}"
+        )
+    if [s for _, s in en] != [s for _, s in zh]:
+        problems.append("中英平台表的状态列不一致")
+    # 每个 ✅ 必须有实测证据：在「实测口径」说明文字里被点名
+    for label, txt, header in (
+        ("README.md", v.text("README.md"), PLAT_HDR_EN),
+        ("README.zh.md", v.text("README.zh.md"), PLAT_HDR_ZH),
+    ):
+        prose = _plat_prose(txt, header)
+        if not prose.strip():
+            problems.append(f"{label} 平台表下方缺「实测口径」说明")
+            continue
+        for name, status in _plat_rows(txt, header):
+            if VERIFIED_MARK in status and name not in prose:
+                problems.append(
+                    f"{label}: 平台「{name}」标 ✅ 但未在实测口径说明中点名（无证据的 ✅ = 虚假宣称）"
+                )
+    if problems:
+        return False, "; ".join(problems)
+    n_ok = sum(1 for _, s in en if VERIFIED_MARK in s)
+    return True, f"平台表中英对等（{len(en)} 个平台，其中 {n_ok} 个有实测证据）"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -392,6 +519,8 @@ CHECKS = [
     ("D10", "版本号中英/配置对等", d10_version_parity),
     ("D11", "agent spec 字符数表 == 实际文件", d11_spec_sizes),
     ("D12", "自用/模板 pre-commit 脚本内容一致", d12_twin_scripts),
+    ("D13", "marketplace 清单与安装命令自洽", d13_marketplace_manifest),
+    ("D14", "中英平台兼容表对等", d14_platform_table_parity),
 ]
 
 
@@ -413,15 +542,21 @@ MUTATIONS: dict[str, callable] = {
     "D5": lambda v: {"README.md": _sub1(v.text("README.md"), "**8 distilled source notes", "**7 distilled source notes")},
     "D6": lambda v: {"README.md": _sub1(v.text("README.md"), "- [x] CI pipeline", "- [ ] CI pipeline")},
     "D7": lambda v: {".gitignore": v.text(".gitignore").replace("__pycache__/", "__never_ignore__/")},
-    "D8": lambda v: {"plugin.json": _sub1(v.text("plugin.json"), "TrueFurina/AGI-Distiller", PHANTOM)},
+    "D8": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), "TrueFurina/AGI-Distiller", PHANTOM)},
     "D9": lambda v: {"HEARTBEAT.md": _sub1(v.text("HEARTBEAT.md"), "| 生产级 skill | 19 |", "| 生产级 skill | 7 |")},
-    "D10": lambda v: {"plugin.json": _sub1(v.text("plugin.json"), '"version": "0.1.0"', '"version": "9.9.9"')},
+    "D10": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), '"version": "0.1.0"', '"version": "9.9.9"')},
     "D11": lambda v: {"README.md": _sub1(v.text("README.md"), "~1187 chars", "~1 chars")},
     "D12": lambda v: {
         "templates/scripts/pre-commit/caliber_check.py": v.text(
             "templates/scripts/pre-commit/caliber_check.py"
         )
         + "\n# mutated in self-test\n"
+    },
+    "D13": lambda v: {
+        MKT: _sub1(v.text(MKT), '"name": "agi-distiller"', '"name": "phantom-marketplace"')
+    },
+    "D14": lambda v: {
+        "README.md": _sub1(v.text("README.md"), "| GitHub Copilot |", "| Ghost Platform |")
     },
 }
 
