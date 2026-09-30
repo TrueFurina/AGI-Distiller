@@ -760,18 +760,43 @@ def _sub1(text: str, old: str, new: str) -> str:
     return text.replace(old, new, 1)
 
 
+def _mut_num(text: str, pattern: str, offset: int = 1) -> str:
+    """把文本中首个匹配到的数字改成「该数 + offset」，pattern 需含一个数字捕获组。
+
+    为什么不用 _sub1 硬写当前值（如 "19 条判据" → "3 条判据"）：
+    这类锚点等于把**当前实际值抄进了变异定义**。实际值一变（判据从 19 增到 20、
+    skill 从 19 增到 20、SOUL.md 字数一改），锚点就 assert 失败、self-test 直接崩。
+    这与"文档里手写数字会漂"是同一种病，只是换了个地方犯。
+    改成从文本里读出当前值再偏移，锚点永不失效，且 当前值+offset != 实际值 恒成立。
+    """
+    m = re.search(pattern, text)
+    assert m, f"变异锚点缺失（正则未匹配）: {pattern!r}"
+    n = int(m.group(1))
+    return text[:m.start(1)] + str(n + offset) + text[m.end(1):]
+
+
+def _mut_d16(v) -> dict[str, str]:
+    """D16 变异：把「N 份笔记」改成「N+50 篇笔记」。
+
+    单位必须一起换成「篇」——D16 判据匹配的是「N 篇」声称，「份」不在其口径内，
+    只改数字不改单位是打不穿判据的（这一条曾踩过：锚点打在「份」上，判据查「篇」）。
+    """
+    txt = v.text("DISTILLER.md")
+    return {"DISTILLER.md": _mut_num(txt, r"(\d+) 份笔记", offset=50).replace("份笔记", "篇笔记", 1)}
+
+
 MUTATIONS: dict[str, callable] = {
     "D1": lambda v: {"README.md": _sub1(v.text("README.md"), "`workspace-isolation`", "`ghost-skill`")},
     "D2": lambda v: {"README.zh.md": _sub1(v.text("README.zh.md"), "`workspace-isolation`", "`ghost-skill`")},
     "D3": lambda v: {"README.zh.md": _sub1(v.text("README.zh.md"), "`workspace-isolation`", "`ghost-skill`")},
     "D4": lambda v: {"README.md": _sub1(v.text("README.md"), "(14 sections)", "(12 sections)")},
-    "D5": lambda v: {"README.md": _sub1(v.text("README.md"), "**8 distilled source notes", "**7 distilled source notes")},
+    "D5": lambda v: {"README.md": _mut_num(v.text("README.md"), r"\*\*(\d+) distilled source notes")},
     "D6": lambda v: {"README.md": _sub1(v.text("README.md"), "- [x] CI pipeline", "- [ ] CI pipeline")},
     "D7": lambda v: {".gitignore": v.text(".gitignore").replace("__pycache__/", "__never_ignore__/")},
     "D8": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), "TrueFurina/AGI-Distiller", PHANTOM)},
-    "D9": lambda v: {"HEARTBEAT.md": _sub1(v.text("HEARTBEAT.md"), "| 生产级 skill | 19 |", "| 生产级 skill | 7 |")},
+    "D9": lambda v: {"HEARTBEAT.md": _mut_num(v.text("HEARTBEAT.md"), r"\| 生产级 skill \| (\d+) \|")},
     "D10": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), '"version": "0.1.0"', '"version": "9.9.9"')},
-    "D11": lambda v: {"README.md": _sub1(v.text("README.md"), "~1187 chars", "~1 chars")},
+    "D11": lambda v: {"README.md": _mut_num(v.text("README.md"), r"~(\d+) chars")},
     "D12": lambda v: {
         "templates/scripts/pre-commit/caliber_check.py": v.text(
             "templates/scripts/pre-commit/caliber_check.py"
@@ -787,12 +812,8 @@ MUTATIONS: dict[str, callable] = {
     "D15": lambda v: {
         "README.md": _sub1(v.text("README.md"), "](CONTRIBUTING.md)", "](NO_SUCH_FILE.md)")
     },
-    "D16": lambda v: {
-        "DISTILLER.md": _sub1(v.text("DISTILLER.md"), "8 份笔记", "99 篇笔记")
-    },
-    "D17": lambda v: {
-        "CONTRIBUTING.md": _sub1(v.text("CONTRIBUTING.md"), "19 条判据", "3 条判据")
-    },
+    "D16": _mut_d16,
+    "D17": lambda v: {"CONTRIBUTING.md": _mut_num(v.text("CONTRIBUTING.md"), r"(\d+) 条判据")},
     "D18": lambda v: {
         PR_TPL: _sub1(v.text(PR_TPL),
                       "python scripts/check_doc_consistency.py",
