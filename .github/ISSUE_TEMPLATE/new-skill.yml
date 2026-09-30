@@ -1,0 +1,68 @@
+name: 📝 新 skill 投稿
+description: 基于一篇文章或一次实战，蒸馏出一个新的 skill
+title: "[skill] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 投稿前请先读 [`CONTRIBUTING.md`](../../CONTRIBUTING.md) 的「6 条硬要求」。
+        > 本仓库只收**可溯源**的 skill：能说清来自哪篇文章、解决哪个痛点。
+
+  - type: textarea
+    id: pain
+    attributes:
+      label: 解决什么痛点
+      description: 不装这个 skill，Agent 会犯什么错？请说具体场景，不要写"提升效率"这类空话。
+      placeholder: 例：Agent 修 Bug 时经常不看报错直接改代码，改完换个地方再炸。
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: 来源
+      description: 文章链接 + `sources/` 下的笔记文件名；或写清"本机实战：哪天、什么项目、什么现象"。
+      placeholder: |
+        文章：https://laodad.com/7725
+        笔记：sources/laodad-7725-上线检查清单.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: without
+    attributes:
+      label: 不写会怎样
+      description: 如果这条经验不落进 skill，下次会付出什么代价。
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: 拟定 skill 名
+      description: 格式 `<动词>-<名词>`，全小写加连字符，如 `debug-flow`、`cli-safety`。
+      placeholder: deploy-checker
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: description（含触发词）
+      description: 一句话说清它干什么 + 触发词（用户会说的自然语言）。中英文都要。
+      placeholder: "上线检查清单 —— 发布前按 8 项逐条检查。触发词：上线、发布、部署、发版"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: 投稿前自检
+      options:
+        - label: 我读过 `CONTRIBUTING.md` 的 6 条硬要求
+          required: true
+        - label: 规则句都带了溯源标记（`[R<N>]` / `[实测]` / `[设计]` / `[复现:2+]`）
+          required: true
+        - label: 我确认这不是凑数 —— 宁可少一个 skill，也不要一个没有出处的 skill
+          required: true

@@ -87,10 +87,21 @@
 「已过期 / 进行中 / 未启动」。Phase 2 窗口为 2026.08.17 → 2026.10.17，截至 2026-10-01 仍在窗口内，
 故阶段划分本身未过期，不再重排。
 
-### 5. `.github/` 下无 PR / issue 模板
+### 5. ✅ 已解决：PR / issue 模板
 
-`.github/` 目前只有 `workflows/`。投稿 skill 的流程已写进 `CONTRIBUTING.md`，
-但 PR / issue 模板能让贡献者少走弯路。优先级低于「skill 从 19 继续增长」。
+新增 `.github/PULL_REQUEST_TEMPLATE.md` + 3 个 issue form
+（`new-skill` / `new-source` / `bug`）+ `config.yml`（禁用空白 issue）。
+
+要点：
+
+- 所有 `labels` 只用仓库**已存在**的 9 个默认 label —— GitHub 规则是
+  引用不存在的 label 不报错、只是**静默不添加**，属典型静默失效；
+- 单行字段类型是 `input`（不是 `textinput`），按官方 schema 核对过；
+- 机验新增 **D18**（PR 模板引用的自检脚本必须真实存在）与 **D19**
+  （issue form 结构合法 + label 真实存在），19/19 PASS 且变异全检出。
+
+> 局限：本机无法验证 GitHub 端对 YAML form 的渲染与解析，
+> 已做的是「官方 schema 对照 + 结构机验」。首次有人真实开 issue 才算最终验证。
 
 ---
 

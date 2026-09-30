@@ -1,0 +1,70 @@
+name: 🐛 Bug / 文档漂移
+description: 机验报错、CI 红、skill 不生效，或文档数字跟实际对不上
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 本项目要求**每条宣称都有可复现命令背书**。请尽量给出命令与实际输出，
+        > 这比"好像不太对"省好几轮来回。
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 类型
+      options:
+        - 机验脚本报错（check_doc_consistency / check_skill_tags / graders）
+        - CI 红（请贴 run 链接）
+        - skill 不生效 / 没被触发
+        - 文档数字与实际不符（漂移）
+        - 安装 / marketplace 问题
+        - 其它
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 请给出**可原样执行**的命令。
+      placeholder: |
+        cd AGI-Distiller
+        python scripts/check_doc_consistency.py
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际输出
+      description: 请贴完整输出或截图，不要只写"报错了"。
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望输出
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: Python 版本 / 操作系统 / 是否装了 PyYAML
+      placeholder: "Python 3.13 / Windows 11 / 已装 PyYAML 6.0"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: known
+    attributes:
+      label: 已知易混淆项（若有则勾选，能省一轮排查）
+      options:
+        - label: 我在本机跑通过了，但 CI 是红的 —— 可能是本机自带依赖而 CI 裸跑（见 CONTRIBUTING 第四节）
+          required: false
+        - label: 我改的是文档里的数字 —— 注意 `README.md` 和 `README.zh.md` 两份都要改
+          required: false

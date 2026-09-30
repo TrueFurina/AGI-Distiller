@@ -1,0 +1,58 @@
+name: 📚 推荐蒸馏来源
+description: 推荐一篇值得蒸馏的高质量文章（不需要你自己写 skill）
+title: "[source] "
+labels: ["help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 这一类是**低门槛**贡献：你只要把文章指出来，蒸馏由维护流程完成。
+        > 当前已蒸馏来源见 `README.md` 的 Sources 表。
+
+  - type: input
+    id: url
+    attributes:
+      label: 文章链接
+      placeholder: https://laodad.com/7725
+    validations:
+      required: true
+
+  - type: input
+    id: title
+    attributes:
+      label: 标题 / 主题
+      placeholder: 上线检查清单
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: 为什么值得蒸馏
+      description: 它讲清楚了什么？跟已有 skill 有什么不同？如果跟现有 skill 重复，请说明差异在哪。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 分类
+      options:
+        - AI 编程效率
+        - CLI & Agent
+        - 调试 / 排错
+        - 架构 / 设计
+        - 协作 / 流程
+        - 其它（在下方说明）
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: check
+    attributes:
+      label: 确认
+      options:
+        - label: 我确认这篇文章不是已有 skill 的重复来源
+          required: false
+        - label: 内容可公开引用（不是付费/内部分享）
+          required: false

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 贡献指南
+    url: https://github.com/TrueFurina/AGI-Distiller/blob/main/CONTRIBUTING.md
+    about: 投稿 skill 前请先读这一份，尤其是「6 条硬要求」和「溯源三问」。
+  - name: 🔬 蒸馏流程
+    url: https://github.com/TrueFurina/AGI-Distiller/blob/main/DISTILLER.md
+    about: 怎么把一篇文章蒸馏成一个可溯源的 skill。
+  - name: 🗺️ 真实待办
+    url: https://github.com/TrueFurina/AGI-Distiller/blob/main/NEXT.md
+    about: 当前未闭环的事项列表（含优先级），想认领先看这里。

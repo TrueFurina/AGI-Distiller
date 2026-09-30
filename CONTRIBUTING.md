@@ -20,6 +20,14 @@
 | 🌐 翻译 | 把 skill 翻译成其它语言 | 中（不许改语义） |
 | 🐛 修 bug | 改进现有 skill | 低（但要说明改了什么、为什么） |
 
+前三类中，📝 新来源、🔧 新 skill、🐛 修 bug 都有对应的 issue 模板
+（`.github/ISSUE_TEMPLATE/`），提 PR 时会自动带出 `PULL_REQUEST_TEMPLATE.md`。
+**模板里的必填项就是本指南的硬要求**，照着填即可。
+
+> 模板里的 `labels` 只用仓库**已存在**的 label。
+> GitHub 规则：模板引用了不存在的 label 时不会报错，而是**静默不添加**——
+> 这类静默失效由机验 D19 盯着。
+
 ---
 
 ## 二、提交 skill 的流程
@@ -90,7 +98,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 17 条判据，含变异自验
+# 1) 文档一致性 —— 19 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -126,7 +134,7 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（17 条判据） |
+| `doc-consistency` | 文档与实际是否一致（19 条判据） |
 | `skill-tags` | skill 有无裸规则 |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |

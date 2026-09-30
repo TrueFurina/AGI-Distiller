@@ -597,6 +597,136 @@ def d17_checks_count_claims(v: RepoView):
     return True, f"判据条数声称与实际一致（{actual} 条）"
 
 
+# ── D18 / D19：PR / issue 模板健全性 ──────────────────────────
+# 背景：CONTRIBUTING.md 写好了，但 .github/ 下除 workflows 外什么都没有。
+# 模板里的命令和 label 一旦写错，是**静默失效**（没人报错，就是不生效），
+# 比显式报错更该拦。
+#
+# 局限（写在明处）：本脚本承诺零第三方依赖，故不做完整 YAML 解析，
+# 而是对**我们自己撰写的、缩进规整**的模板做文本层校验。
+# 覆盖 GitHub issue form schema 的关键约束，不覆盖 schema 全部细节。
+
+PR_TPL = ".github/PULL_REQUEST_TEMPLATE.md"
+ISSUE_TPL_DIR = ".github/ISSUE_TEMPLATE"
+ISSUE_CONFIG = ".github/ISSUE_TEMPLATE/config.yml"
+
+# GitHub 官方文档「Syntax for GitHub's form schema」列出的合法 body 元素类型。
+# 注意：单行文本是 `input`（不是 `textinput`）—— 官方示例即如此。
+ISSUE_BODY_TYPES = {"markdown", "input", "textarea", "dropdown", "checkboxes", "upload"}
+
+# 仓库现有 label（GitHub 建仓时自带的 9 个）。
+# 官方明确：「若 label 不存在于仓库，它不会被自动添加到 issue」——
+# 即模板里写了个不存在的 label 是**静默失效**，不会报错。
+# 局限：此处为静态快照；若远端新增/删除 label，需同步本集合。
+REPO_LABELS = {
+    "bug", "documentation", "duplicate", "enhancement",
+    "good first issue", "help wanted", "invalid", "question", "wontfix",
+}
+
+# PR 模板里形如 `python scripts/xxx.py` 的命令引用
+PY_CMD = re.compile(r"python\s+([A-Za-z0-9_./\-]+\.py)")
+
+
+def _form_top_keys(txt: str) -> set[str]:
+    return set(re.findall(r"^([A-Za-z_]+):", txt, re.M))
+
+
+def _form_labels(txt: str) -> list[str]:
+    m = re.search(r'^labels:\s*\[(.*?)\]\s*$', txt, re.M)
+    if not m:
+        return []
+    return [x.strip().strip("\"'") for x in m.group(1).split(",") if x.strip()]
+
+
+def _form_elements(txt: str) -> list[dict]:
+    """文本层状态机：解析 body 元素（type / id / label）。"""
+    els: list[dict] = []
+    cur: dict | None = None
+    for line in txt.splitlines():
+        m = re.match(r"^  - type:\s*(\S+)\s*$", line)
+        if m:
+            cur = {"type": m.group(1), "id": None, "label": None}
+            els.append(cur)
+            continue
+        if cur is None:
+            continue
+        m = re.match(r"^    id:\s*(\S+)\s*$", line)
+        if m:
+            cur["id"] = m.group(1)
+            continue
+        # attributes.label 缩进 6 空格；checkbox 的 option `- label:` 缩进 8 且带 "- "
+        m = re.match(r"^      label:\s*(.+?)\s*$", line)
+        if m:
+            cur["label"] = m.group(1)
+    return els
+
+
+def _form_files(v: RepoView) -> list[str]:
+    return [f for f in v.files_under(ISSUE_TPL_DIR, ".yml")
+            if not f.endswith("config.yml")]
+
+
+def d18_pr_template_commands(v: RepoView):
+    """PR 模板必须存在，且其中 `python <path>` 引用的脚本真实存在。
+
+    背景：CONTRIBUTING.md 承诺"三条命令可自检"，PR 模板是投稿人真正照抄的地方。
+    模板里写了个不存在的脚本路径，投稿人会照着跑、然后报"命令不存在"。
+    """
+    md_files = {f for f in v.files_glob("**/*.md") if ".git/" not in f}
+    if PR_TPL not in md_files:
+        return False, f"缺少 {PR_TPL}"
+    txt = v.text(PR_TPL)
+    refs = sorted(set(PY_CMD.findall(txt)))
+    if not refs:
+        return False, f"{PR_TPL} 未引用任何自检命令（投稿人无从自检）"
+    py_files = {f for f in v.files_glob("**/*.py") if ".git/" not in f}
+    missing = [r for r in refs if r not in py_files]
+    if missing:
+        return False, f"{PR_TPL} 引用了不存在的脚本: {missing}"
+    return True, f"PR 模板引用的 {len(refs)} 个脚本均真实存在"
+
+
+def d19_issue_forms_valid(v: RepoView):
+    """issue form 必须符合 GitHub schema，且 label 必须真实存在。"""
+    files = _form_files(v)
+    if not files:
+        return False, f"{ISSUE_TPL_DIR} 下无任何 issue form"
+    problems = []
+    for f in files:
+        txt = v.text(f)
+        keys = _form_top_keys(txt)
+        for need in ("name", "description", "body"):
+            if need not in keys:
+                problems.append(f"{f}: 缺顶层字段 {need}")
+        for lab in _form_labels(txt):
+            if lab not in REPO_LABELS:
+                problems.append(f"{f}: label 不在仓库现有集合中: {lab!r}（会被静默忽略）")
+        seen: set[str] = set()
+        for el in _form_elements(txt):
+            if el["type"] not in ISSUE_BODY_TYPES:
+                problems.append(f"{f}: 非法 body type {el['type']!r}")
+                continue
+            if el["type"] == "markdown":
+                continue
+            if not el["id"]:
+                problems.append(f"{f}: {el['type']} 元素缺 id")
+            elif el["id"] in seen:
+                problems.append(f"{f}: id 重复 {el['id']!r}")
+            else:
+                seen.add(el["id"])
+            if not el["label"]:
+                problems.append(f"{f}: 元素 {el['id']!r} 缺 label")
+    if ISSUE_CONFIG in files or ISSUE_CONFIG in v.files_glob("**/*.yml"):
+        cfg = v.text(ISSUE_CONFIG)
+        if re.search(r"^blank_issues_enabled:\s*true\s*$", cfg, re.M):
+            problems.append(f"{ISSUE_CONFIG}: blank_issues_enabled=true（会绕过全部模板）")
+    else:
+        problems.append(f"缺少 {ISSUE_CONFIG}（blank_issues_enabled / contact_links）")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"{len(files)} 个 issue form 均合法，label 均在仓库集合内"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -615,6 +745,8 @@ CHECKS = [
     ("D15", "Markdown 相对链接无死链", d15_relative_links),
     ("D16", "「N 篇」声称不超过实际落盘", d16_source_count_claims),
     ("D17", "「N 条判据」声称 == 实际条数", d17_checks_count_claims),
+    ("D18", "PR 模板引用的自检脚本真实存在", d18_pr_template_commands),
+    ("D19", "issue form 合法且 label 真实存在", d19_issue_forms_valid),
 ]
 
 
@@ -659,7 +791,17 @@ MUTATIONS: dict[str, callable] = {
         "DISTILLER.md": _sub1(v.text("DISTILLER.md"), "8 份笔记", "99 篇笔记")
     },
     "D17": lambda v: {
-        "CONTRIBUTING.md": _sub1(v.text("CONTRIBUTING.md"), "17 条判据", "3 条判据")
+        "CONTRIBUTING.md": _sub1(v.text("CONTRIBUTING.md"), "19 条判据", "3 条判据")
+    },
+    "D18": lambda v: {
+        PR_TPL: _sub1(v.text(PR_TPL),
+                      "python scripts/check_doc_consistency.py",
+                      "python scripts/no_such_check.py")
+    },
+    "D19": lambda v: {
+        ".github/ISSUE_TEMPLATE/bug.yml": _sub1(
+            v.text(".github/ISSUE_TEMPLATE/bug.yml"),
+            'labels: ["bug"]', 'labels: ["triage"]')
     },
 }
 
