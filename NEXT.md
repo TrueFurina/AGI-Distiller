@@ -48,6 +48,25 @@
 
 ---
 
+## P0.3 · 断链与数字漂移 ✅ 本轮完成
+
+| 动作 | 验收 |
+|---|---|
+| 新建 `CONTRIBUTING.md` | 兑现已挂了很久的死链 `[CONTRIBUTING.md](CONTRIBUTING.md)`；内容全部来自项目真实流程（`DISTILLER.md` + `tools/check_skill_tags.py` 的溯源标记要求），不是通用模板 |
+| 中文 README 补同一链接 | 此前英文有、中文没有 |
+| 新增 D15 断链检测 | 全仓 5 个相对链接逐个验证目标存在；以后写错链接会被 CI 拦下 |
+| 新增 D16「N 篇」虚报检测 | 抓出 `DISTILLER.md` 写的「19 篇 laodad.com 文章」（实际 laodad 落盘 4 份、全库 8 份） |
+| 修 `DISTILLER.md` 漂移 | 篇数 19 → 实际 8（laodad 4）；笔记目录 `notes/` → 真实目录 `sources/` |
+| 修 `DISTILLER.md` 虚假 ✅ | 「能在 Codex CLI 中运行吗」原打 ✅，本机无该 CLI → 改 ⚠️ 未实测；质量门禁的「跨平台兼容」同改 |
+| 删 `pipeline/` 空目录 | 真实管道是 `tools/distill_skills.py`，空目录零引用 |
+
+> **D16 的误报教训（已在判据 docstring 写明）**：第一版没有语境豁免，立刻误报 3 处——
+> 「规划目标 50 篇」「此前错写 21 篇」「待办：批量蒸馏 10 篇」全是合法语境。
+> 已加豁免（目标/规划/此前/待办字样，以及同行带实际值对照的写法）。
+> **它是启发式判据，拦得住裸虚报，拦不住"给虚报加个'目标'字样"——别当硬保证。**
+
+---
+
 ## P1 · 待办（真实存在，非凑数）
 
 ### 1. Codex CLI 安装路径未实装
@@ -55,25 +74,23 @@
 `npx skills add TrueFurina/AGI-Distiller` —— 已核实 CLI 存在（`skills@1.7.0`）、`add <owner/repo>` 语法合法，
 但本机无 Codex CLI，**未实装**。README 已如实标注。待有 Codex CLI 的机器补验。
 
-### 2. 无 CONTRIBUTING.md
+### 2. ✅ 已解决：CONTRIBUTING.md（见 P0.3）
 
-README 有 Contributing 章节，但仓库里没有独立文件；`.github/` 下除 workflows 外没有 PR / issue 模板。
-对「希望他人投稿 skill」的定位来说，这是硬缺口。
+### 3. ✅ 已解决：`pipeline/` 空目录已删
 
-### 3. 一处空目录 + 一处双份脚本（双份已有机验 D12 盯着）
+蒸馏管道的真实实现是 `tools/distill_skills.py`（`sources/*.md` → `skills-drafts/<slug>/SKILL.md`），
+`pipeline/` 空目录全仓零引用，纯属误导，已删。剩「双份 pre-commit 脚本」由 D12 盯着，不是缺口。
 
-- **`pipeline/` 是空目录**（git 不跟踪，但本地结构上误导人）—— 要么填内容，要么删。
-- `scripts/pre-commit/` 与 `templates/scripts/pre-commit/` 各有一份**内容相同**的 4 个脚本
-  （前者是仓库自用，后者是分发给其它项目的模板）。
-  这不是缺陷，但**两份必须同步** —— 否则模板会静默漂移。目前没有任何机验盯着这对孪生文件。
+### 4. ✅ 已解决：ROADMAP 校准
 
-> 更正记录：本条初稿曾把 `scripts/pre-commit/` 写成空目录，属误判（`ls scripts/` 只看到目录名，未进去看）。
-> 这正是本文件要防的病 —— 已按实际核对结果改写。
+顶部已加「规划目标 vs 实际（2026-09-27 实测）」对照表，关键里程碑的虚假 ✅ 已改为
+「已过期 / 进行中 / 未启动」。Phase 2 窗口为 2026.08.17 → 2026.10.17，截至 2026-10-01 仍在窗口内，
+故阶段划分本身未过期，不再重排。
 
-### 4. ROADMAP 阶段已过期
+### 5. `.github/` 下无 PR / issue 模板
 
-`ROADMAP.md` 停在「Phase 1: 现在 → 2026.08」「Phase 2: 2026.08 → 2026.10」，
-而今天已是 **2026-09-27**，实际 skill 数 19 已超过 Phase 1 目标（10）。需按实际重排阶段与指标。
+`.github/` 目前只有 `workflows/`。投稿 skill 的流程已写进 `CONTRIBUTING.md`，
+但 PR / issue 模板能让贡献者少走弯路。优先级低于「skill 从 19 继续增长」。
 
 ---
 

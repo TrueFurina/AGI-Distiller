@@ -506,6 +506,97 @@ def d14_platform_table_parity(v: RepoView):
     return True, f"平台表中英对等（{len(en)} 个平台，其中 {n_ok} 个有实测证据）"
 
 
+MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+SKIP_SCHEME = ("http://", "https://", "#", "mailto:")
+
+
+def d15_relative_links(v: RepoView):
+    """所有 Markdown 里的相对链接都必须指向真实存在的文件。
+
+    背景：README 里写着 `See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.`，
+    而这个文件根本不存在 —— 对想投稿的人来说，这是第一个、也是最劝退的一个死链。
+    """
+    problems = []
+    checked = 0
+    for md in sorted(ROOT.rglob("*.md")):
+        if ".git" in md.parts:
+            continue
+        rel = md.relative_to(ROOT).as_posix()
+        for url in MD_LINK.findall(v.text(rel)):
+            if url.startswith(SKIP_SCHEME):
+                continue
+            checked += 1
+            target = (md.parent / url.split("#")[0]).resolve()
+            try:
+                t_rel = target.relative_to(ROOT).as_posix()
+                exists = bool(v.text(t_rel))
+            except ValueError:
+                exists = target.exists()
+            if not exists:
+                problems.append(f"{rel} → {url}")
+    if problems:
+        return False, f"{len(problems)} 处断链：{'; '.join(problems[:3])}"
+    return True, f"{checked} 个相对链接全部指向存在的文件"
+
+
+PIAN = re.compile(r"(\d+)\s*篇")
+PIAN_FILES = ("DISTILLER.md", "README.md", "README.zh.md", "HEARTBEAT.md", "ROADMAP.md")
+# 明确标了「目标 / 规划 / 历史 / 待办」语境的行不算虚报 —— 那是愿景或回顾，不是已完成的声称
+PIAN_EXEMPT = ("目标", "规划", "计划", "愿景", "当时", "此前", "实际", "- [ ]", "[ ]")
+# 同一行自带实际值对照（如 `| 50 篇 | **8 份** |`）→ 是"目标 vs 实际"对照行，不是虚报
+PIAN_HAS_ACTUAL = re.compile(r"\*\*\d+\s*份\*\*")
+
+
+def d16_source_count_claims(v: RepoView):
+    """文档里形如「N 篇」的**已完成声称**不得超过 sources/ 实际落盘笔记数。
+
+    背景：README 的篇数早已校准到 8，但 DISTILLER.md 里还写着「19 篇 laodad.com 文章」——
+    同一个数字在多份文档里各写各的，改了一处漏了另一处。
+
+    ⚠️ 局限（必须写明）：这是**纯文本启发式**判据。它只认「行内有没有语境豁免词」，
+    分不清真正的语义。第一版没有豁免词，立刻误报 3 处——
+    「规划目标 50 篇」「此前错写 21 篇」「待办：批量蒸馏 10 篇」全都是合法语境。
+    它拦得住"无语境的裸虚报"，拦不住"给虚报加个'目标'字样"。别把它当硬保证。
+    """
+    actual = len(v.files_under("sources", ".md"))
+    problems = []
+    for f in PIAN_FILES:
+        for line in v.text(f).splitlines():
+            if any(w in line for w in PIAN_EXEMPT) or PIAN_HAS_ACTUAL.search(line):
+                continue
+            for m in PIAN.finditer(line):
+                n = int(m.group(1))
+                if n > actual:
+                    problems.append(f"{f}: 声称 {n} 篇 > 实际落盘 {actual} 份（行：{line.strip()[:40]}）")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"所有「N 篇」声称均不超过实际落盘 {actual} 份"
+
+
+CHECKS_CLAIM = re.compile(r"(\d+)\s*条判据")
+# 不含 NEXT.md：那是历史流水账，天然写着「当时 10 条」这类历史数字，
+# 用"当前条数"去卡它只会误报（与 D16 的语境豁免同理）。
+CHECKS_CLAIM_FILES = ("CONTRIBUTING.md", "README.md", "README.zh.md")
+
+
+def d17_checks_count_claims(v: RepoView):
+    """文档里声称的「N 条判据」必须等于 CHECKS 的实际长度。
+
+    背景：CONTRIBUTING.md 写「14 条判据」时，实际已经是 16 条 ——
+    这种自指数字最容易漂：每次加判据都会让它错一点。
+    """
+    actual = len(CHECKS)
+    problems = []
+    for f in CHECKS_CLAIM_FILES:
+        for m in CHECKS_CLAIM.finditer(v.text(f)):
+            n = int(m.group(1))
+            if n != actual:
+                problems.append(f"{f}: 声称 {n} 条判据 != 实际 {actual} 条")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"判据条数声称与实际一致（{actual} 条）"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -521,6 +612,9 @@ CHECKS = [
     ("D12", "自用/模板 pre-commit 脚本内容一致", d12_twin_scripts),
     ("D13", "marketplace 清单与安装命令自洽", d13_marketplace_manifest),
     ("D14", "中英平台兼容表对等", d14_platform_table_parity),
+    ("D15", "Markdown 相对链接无死链", d15_relative_links),
+    ("D16", "「N 篇」声称不超过实际落盘", d16_source_count_claims),
+    ("D17", "「N 条判据」声称 == 实际条数", d17_checks_count_claims),
 ]
 
 
@@ -557,6 +651,15 @@ MUTATIONS: dict[str, callable] = {
     },
     "D14": lambda v: {
         "README.md": _sub1(v.text("README.md"), "| GitHub Copilot |", "| Ghost Platform |")
+    },
+    "D15": lambda v: {
+        "README.md": _sub1(v.text("README.md"), "](CONTRIBUTING.md)", "](NO_SUCH_FILE.md)")
+    },
+    "D16": lambda v: {
+        "DISTILLER.md": _sub1(v.text("DISTILLER.md"), "8 份笔记", "99 篇笔记")
+    },
+    "D17": lambda v: {
+        "CONTRIBUTING.md": _sub1(v.text("CONTRIBUTING.md"), "17 条判据", "3 条判据")
     },
 }
 

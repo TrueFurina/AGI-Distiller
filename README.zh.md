@@ -214,6 +214,8 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 - **🌐 翻译**：帮助翻译 skill 到其他语言
 - **🐛 Bug 修复**：改进现有 skill
 
+详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
 ---
 
 ## 📚 已蒸馏来源

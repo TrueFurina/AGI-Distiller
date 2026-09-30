@@ -18,7 +18,7 @@ MANAGED_EXT = {"md", "txt", "html", "json", "csv", "pdf", "png", "jpg", "jpeg", 
 # 根级白名单（各项目可按需修改此集合）
 ROOT_ALLOW = {
     "README.md", "README.zh.md", "README_EN.md", "CLAUDE.md", "AGENTS.md",
-    "LICENSE", "requirements.txt", "package.json", "pyproject.toml",
+    "CONTRIBUTING.md", "LICENSE", "requirements.txt", "package.json", "pyproject.toml",
     "setup.py", "Dockerfile", "docker-compose.yml", ".gitignore",
     ".pre-commit-config.yaml", "CHANGELOG.md", "Makefile",
 }
