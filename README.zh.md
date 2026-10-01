@@ -78,8 +78,8 @@
 | `USER.md` | 当前用户身份和角色 | ~639 字符 |
 | `TOOLS.md` | 工具使用指南 | ~1497 字符 |
 | `IDENTITY.md` | Agent 身份元数据 | ~1064 字符 |
-| `HEARTBEAT.md` | 会话/健康跟踪 | ~829 字符 |
-| **总计** | | **~7536 字符** |
+| `HEARTBEAT.md` | 会话/健康跟踪 | ~825 字符 |
+| **总计** | | **~7532 字符** |
 
 ### Skill（跨平台）
 
@@ -99,9 +99,11 @@
 | `memory-layer-router` | 记忆五层路由决策树：新信息该写进哪层（SOUL/IDENTITY/USER/MEMORY/日记/skills） | ✅ 已发布 |
 | `rule-migrator` | 规则迁移与多工具同步（Cursor Rules / CLAUDE.md / AGENTS.md） | ✅ 已发布 |
 | `session-handoff` | 会话交接工件：写证据链接、fail-closed 的交接文件，而非聊天总结 | ✅ 已发布 |
+| `skill-authoring-check` | skill 写作合规基线：frontmatter 字段边界（name/description/compatibility）、描述公式、渐进披露预算、自由度三档、反模式与提交前清单 | ✅ 已发布 |
 | `task-automator` | 自动化任务编写器：把重复工作写成可稳定执行的自动化流程 | ✅ 已发布 |
 | `task-briefer` | 结构化任务说明模板：6 要素（背景、目标、范围、限制、验收、交付），收到不完整任务主动追问 | ✅ 已发布 |
 | `tdd-discipline` | AI 结对 TDD 纪律：红绿循环约束、读 diff 不听总结 | ✅ 已发布 |
+| `untrusted-content-boundary` | 外部内容信任边界：抓来的网页/issue/评论一律当数据不当指令、分区标注、工具最小权限、高风险动作人工确认 | ✅ 已发布 |
 | `version-guard` | 工作流/配置/应用的版本管理与回滚（Dify、n8n、CI 配置） | ✅ 已发布 |
 | `workspace-isolation` | 多工作区上下文隔离：先定位 workspace、外来文件识别、路径全显式 | ✅ 已发布 |
 
@@ -125,6 +127,7 @@
 
 > ✅ **实测通过**：本机 Claude Code v2.1.251 跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`
 > 全链路，输出 `Component inventory / Skills (19)`，19 个 skill 全部加载。
+> ⚠️ 该记录是**当次运行的观测值**（运行时 19 个 skill）；后续新增 skill 后**未复跑**安装链路——数字保持原样，不追改成新计数。
 
 ### Codex CLI
 
@@ -143,7 +146,7 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### 平台兼容性
 
-> **实测口径** — ✅ 实测 = 在本机跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details` 全链路，19 个 skill 全部被加载（Claude Code v2.1.251）。⚠️ 未实测 = 路径按该平台公开文档填写，本机无对应 CLI，从未真正跑过。
+> **实测口径** — ✅ 实测 = 在本机跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details` 全链路，19 个 skill 全部被加载（Claude Code v2.1.251——该次运行早于当前 skill 计数，此后**未复跑**）。⚠️ 未实测 = 路径按该平台公开文档填写，本机无对应 CLI，从未真正跑过。
 
 | 平台 | 路径 | 状态 |
 |----------|------|--------|
@@ -184,14 +187,14 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### Phase 1：筑基期（当前）
 - [x] 核心蒸馏管道设计
-- [x] 19 个生产级 skill
+- [x] 21 个生产级 skill
 - [x] 14 节行为规范（ATOMCODE.md）
 - [x] 14 条持久化记忆
-- [x] 8 份蒸馏笔记落盘于 `sources/`（laodad 4 / wechat 2 / tencent 1 / comment-distillery 1）
+- [x] 10 份蒸馏笔记落盘于 `sources/`（laodad 4 / wechat 2 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1）
 - [x] GitHub 仓库上线
 
 ### Phase 2：成长期（未来 30 天）
-- [x] 19 个 skill
+- [x] 21 个 skill
 - [x] CI 流水线（`.github/workflows/golden-regression.yml`）
 - [ ] 注册 marketplace
 - [ ] 自动化蒸馏管道
@@ -228,7 +231,7 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 | [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill 工程（姊妹项目） | ✅ |
 | 持续扩展中... | | | 🚧 |
 
-**已落盘 8 份蒸馏笔记**（`sources/**/*.md`）。上表数字由 `scripts/check_doc_consistency.py` 对着工作区机验。
+**已落盘 10 份蒸馏笔记**（`sources/**/*.md`）。上表数字由 `scripts/check_doc_consistency.py` 对着工作区机验。
 
 ---
 

@@ -106,11 +106,21 @@ python scripts/check_doc_consistency.py --self-test
 python tools/check_skill_tags.py
 python tools/check_skill_tags.py --self-test
 
-# 3) 判分器自检
+# 3) 计数同步 —— 数字必须等于工作区事实（改完 skill/笔记后先 --fix 再复核）
+python tools/sync_counts.py --self-test
+python tools/sync_counts.py
+
+# 4) 判分器自检
 python golden/graders.py --self-test
 ```
 
-三条命令都退出 0 才提 PR。
+四条命令都退出 0 才提 PR。
+
+**数字不要手敲。** 加了一个 skill / 一篇笔记后，被机验强制的计数散落在
+README ×2 / HEARTBEAT / NEXT / CONTRIBUTING 里（实测每轮 16+ 处）。
+`python tools/sync_counts.py --fix` 从 `skills/` 与 `sources/` 的实际内容改回去，
+省掉逐个手改——**人力一定会漏**（本项目就漏过一次 HEARTBEAT 那行，靠门禁回头抓出来）。
+它只改计数，不碰历史/实测记录；skill 表的摘要得人来写。
 
 依赖实情（别信"本机跑通"）：
 
@@ -118,6 +128,7 @@ python golden/graders.py --self-test
 |---|---|
 | `check_doc_consistency.py` | 无（纯标准库） |
 | `check_skill_tags.py` | 无（纯标准库） |
+| `sync_counts.py` | 无（纯标准库） |
 | `graders.py` | **需要 PyYAML** —— `pip install pyyaml` |
 
 `graders.py` 那一条要特别小心：**本机装了 PyYAML 不代表 CI 有**。
@@ -134,10 +145,15 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（19 条判据） |
-| `skill-tags` | skill 有无裸规则 |
+| `doc-consistency` | 文档与实际是否一致（19 条判据 + 计数同步机验：`tools/sync_counts.py`） |
+| `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |
+
+> `allowed-tools` 的分隔符**别照着单一规范改**：agentskills.io 的开放标准写空格，
+> 而 Claude Code（本仓唯一实测过的宿主）的 schema 写 `Comma-separated string or YAML list`。
+> **两份规范是冲突的**，本仓按已实测宿主用逗号，证据见 `sources/anthropic/skill-authoring-standard.md` §八。
+> 门禁会拦住反向改动。
 
 > 注意：**本机绿 ≠ CI 绿**。本机环境可能自带依赖而 CI 是裸的；
 > 反过来，workflow 里若调用了不存在的脚本或参数，也会一直是红的。

@@ -32,19 +32,28 @@
 - [ ] **5. 中英文描述都有**：正文可中文，但 `description` 要让不读中文的 Agent 也能判断该不该触发
 - [ ] **6. 不是凑数**：宁可少一个 skill，也不要一个没有出处的 skill
 
-## 四、本地自检（三条必须全绿）
+## 四、本地自检（四条必须全绿）
 
 ```bash
 python scripts/check_doc_consistency.py        # 无第三方依赖
 python tools/check_skill_tags.py               # 无第三方依赖
+python tools/sync_counts.py                    # 计数同步：数字必须等于工作区事实（无第三方依赖）
 python golden/graders.py --self-test           # 需要 PyYAML：pip install pyyaml
 ```
 
-三条都退出 `0` 才提 PR。前两条是纯标准库；第三条**要 PyYAML**——本机装了不等于 CI 有，见 `CONTRIBUTING.md` 第四节。
+四条都退出 `0` 才提 PR。前三条是纯标准库；第四条**要 PyYAML**——本机装了不等于 CI 有，见 `CONTRIBUTING.md` 第四节。
 
 ## 五、文档是否需要同步
 
-改动 skill 数量 / 规则节数 / 数字口径时，下列文件可能已经漂了：
+改动 skill 数量 / 规则节数 / 数字口径时，**不要手敲数字**：
+
+```bash
+python tools/sync_counts.py --fix   # 从 skills/ 与 sources/ 的实际内容改回去
+python tools/sync_counts.py         # 复核
+```
+
+它只改**计数**，不碰**历史/实测记录**（如 README 里那次 `Skills (19)` 的安装实测值）——那些追改等于伪造验证。
+skill 表的**一句话摘要**工具不代写，只把待办列出来。若仍有漂移，逐项确认：
 
 - [ ] `README.md` + `README.zh.md`（**两份都要改**，机验 D1/D2 盯着中英一致）
 - [ ] `HEARTBEAT.md`

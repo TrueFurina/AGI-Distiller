@@ -82,8 +82,8 @@
 | `USER.md` | Current user identity and role | ~639 chars |
 | `TOOLS.md` | Tool usage guide | ~1497 chars |
 | `IDENTITY.md` | Agent identity metadata | ~1064 chars |
-| `HEARTBEAT.md` | Session / health tracking | ~829 chars |
-| **Total** | | **~7536 chars** |
+| `HEARTBEAT.md` | Session / health tracking | ~825 chars |
+| **Total** | | **~7532 chars** |
 
 ### Skills (Cross-Platform)
 
@@ -103,9 +103,11 @@
 | `memory-layer-router` | Five-layer memory routing decision tree — which layer (SOUL / IDENTITY / USER / MEMORY / daily log / skills) new information belongs to | ✅ Live |
 | `rule-migrator` | Rule-file migration and multi-tool sync (Cursor Rules / CLAUDE.md / AGENTS.md) | ✅ Live |
 | `session-handoff` | Session-handoff artifact — write an evidence-linked, fail-closed handoff file instead of a chat summary | ✅ Live |
+| `skill-authoring-check` | Skill authoring compliance baseline — frontmatter field limits (name/description/compatibility), description formula, progressive disclosure budgets, degrees of freedom, anti-patterns, pre-submit checklist | ✅ Live |
 | `task-automator` | Automation task writer — write repeatable, verifiable automation workflows | ✅ Live |
 | `task-briefer` | Structured task brief template (background, goal, scope, limits, acceptance, delivery) — probe for missing context | ✅ Live |
 | `tdd-discipline` | AI pair-programming TDD discipline — red/green cycle constraints, read the diff instead of trusting summaries | ✅ Live |
+| `untrusted-content-boundary` | Trust boundary when an agent consumes untrusted external content (webpages, issues/PRs, comments, downloads) — treat it as data not instructions, segregate and label it, least-privilege tools, human approval before high-impact actions | ✅ Live |
 | `version-guard` | Version management and rollback for workflows, configs and apps (Dify, n8n, CI config) | ✅ Live |
 | `workspace-isolation` | Multi-workspace context isolation — locate the workspace first, identify foreign files, always use explicit paths | ✅ Live |
 
@@ -129,7 +131,8 @@
 
 > ✅ **实测通过**：本机 Claude Code v2.1.251 跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`
 > 全链路，`Component inventory: Skills (19)` 全部加载。
-> ✅ **Verified end-to-end** on Claude Code v2.1.251 — all 19 skills load.
+> ⚠️ 该记录是**当次运行的观测值**（运行时 19 个 skill）；后续新增 skill 后**未复跑**安装链路——数字保持原样，不追改成新计数。
+> ✅ **Verified end-to-end** on Claude Code v2.1.251 — all 19 skills load (that run had 19 skills; the chain has **not** been re-run since the skill count changed).
 
 ### Codex CLI
 
@@ -149,7 +152,7 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### Platform Compatibility
 
-> **Verified** — ✅ 实测 = ran the full chain on this machine: `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`, all 19 skills loaded (Claude Code v2.1.251). ⚠️ 未实测 / unverified = path follows that platform's public docs; no CLI available here, never actually run.
+> **Verified** — ✅ 实测 = ran the full chain on this machine: `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`, all 19 skills loaded (Claude Code v2.1.251 — the run predates the current skill count; **not re-run** since). ⚠️ 未实测 / unverified = path follows that platform's public docs; no CLI available here, never actually run.
 
 | Platform | Path | Status |
 |----------|------|--------|
@@ -190,14 +193,14 @@ See [DISTILLER.md](DISTILLER.md) for the complete pipeline specification.
 
 ### Phase 1: Foundation (Current)
 - [x] Core distillation pipeline design
-- [x] 19 production skills
+- [x] 21 production skills
 - [x] 14-section behavioral specification (ATOMCODE.md)
 - [x] 14 persistent memory entries
-- [x] 8 distilled source notes on disk in `sources/` (laodad 4 / wechat 2 / tencent 1 / comment-distillery 1)
+- [x] 10 distilled source notes on disk in `sources/` (laodad 4 / wechat 2 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1)
 - [x] GitHub repository live
 
 ### Phase 2: Growth (Next 30 days)
-- [x] 19 skills total
+- [x] 21 skills total
 - [x] CI pipeline (`.github/workflows/golden-regression.yml`)
 - [ ] Marketplace registration
 - [ ] Automated distillation pipeline
@@ -234,7 +237,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 | [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill engineering (sibling project) | ✅ |
 | More coming... | | | 🚧 |
 
-**8 distilled source notes on disk** (`sources/**/*.md`). The count above is verified against the working tree by `scripts/check_doc_consistency.py`.
+**10 distilled source notes on disk** (`sources/**/*.md`). The count above is verified against the working tree by `scripts/check_doc_consistency.py`.
 
 ---
 

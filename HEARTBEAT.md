@@ -1,15 +1,15 @@
 # HEARTBEAT.md — Session & Health Tracking / 会话与健康跟踪
 
 > 本文件里的**每个数字都必须能从工作区直接核验**，口径由 `scripts/check_doc_consistency.py` 强制。
-> 不许写"大概""约"或过期的历史累计值 —— 那些数字一定会漂移（本文件此前写 7 skills / 21 篇文章 / 12 节，实际是 19 / — / 14）。
+> 不许写"大概""约"或过期的历史累计值 —— 那些数字一定会漂移（本文件曾写 7 skills / 21 篇文章 / 12 节，三处全与工作区实际不符）。
 
 ## Current Status / 当前状态
 
 | 指标 | 值 | 核验方式 |
 |---|---|---|
-| 生产级 skill | 19 | `ls -d skills/*/ \| wc -l` |
+| 生产级 skill | 21 | `ls -d skills/*/ \| wc -l` |
 | 行为规范节数（ATOMCODE.md） | 14 | `grep -c '^## ' rules/ATOMCODE.md` |
-| 落盘蒸馏笔记 | 8 | `find sources -name '*.md' \| wc -l` |
+| 落盘蒸馏笔记 | 10 | `find sources -name '*.md' \| wc -l` |
 | 远端同步 | 见 `git status -sb` | `git log origin/main..HEAD` |
 
 ## Health / 健康
