@@ -7,5 +7,40 @@
     "ai代码生成率94-我们用一个skill跑通需求开发全流程",
     "用-claude-codex-workbuddy-10倍速学习任何知识-附完整方",
     "thinking-personal-ai-os"
-  ]
+  ],
+  "graduated": {
+    "ai编程项目规则怎么迁移-cursor-rules-claude-md-agen": {
+      "draft": "skills-drafts-archive/graduated/ai编程项目规则怎么迁移-cursor-rules-claude-md-agen",
+      "outcome": "skills/rule-migrator"
+    },
+    "dify-和-n8n-版本管理怎么做-发布-备份-回滚和灰度流程": {
+      "draft": "skills-drafts-archive/graduated/dify-和-n8n-版本管理怎么做-发布-备份-回滚和灰度流程",
+      "outcome": "skills/version-guard"
+    },
+    "用-claude-codex-workbuddy-10倍速学习任何知识-附完整方": {
+      "draft": "skills-drafts-archive/graduated/用-claude-codex-workbuddy-10倍速学习任何知识-附完整方",
+      "outcome": "skills/learning-accelerator"
+    },
+    "ai编程上线检查怎么做-cursor-claude-code-codex-发布前": {
+      "draft": "skills-drafts-archive/rejected/ai编程上线检查怎么做-cursor-claude-code-codex-发布前",
+      "outcome": "(已淘汰，无承接物)"
+    },
+    "codex-自动化任务怎么写-让每日发文-检查和复盘稳定执行": {
+      "draft": "skills-drafts-archive/rejected/codex-自动化任务怎么写-让每日发文-检查和复盘稳定执行",
+      "outcome": "(已淘汰，无承接物)"
+    },
+    "ai代码生成率94-我们用一个skill跑通需求开发全流程": {
+      "draft": "skills-drafts-archive/rejected/ai代码生成率94-我们用一个skill跑通需求开发全流程",
+      "outcome": "(已淘汰，无承接物)"
+    },
+    "thinking-personal-ai-os": {
+      "draft": "skills-drafts-archive/rejected/thinking-personal-ai-os",
+      "outcome": "(已淘汰，无承接物)"
+    }
+  },
+  "manual-channel": {
+    "sources/anthropic/skill-authoring-standard.md": "编号式章节（〇/一/二…），非五段结构；已手工转化为 skills/skill-authoring-check",
+    "sources/comment-distillery-distilled.md": "标题变体「## 解法（可执行规则）」，管道正则只认精确「## 可执行规则」；姊妹项目回流稿件，走手工通道",
+    "sources/owasp/untrusted-content-boundary.md": "编号式章节（〇/一/二…），非五段结构；已手工转化为 skills/untrusted-content-boundary"
+  }
 }

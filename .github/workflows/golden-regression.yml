@@ -97,6 +97,18 @@ jobs:
       - name: WorkBuddy 通道同步器 —— 变异自验（临时 fixture，不碰真实目录）
         run: python tools/workbuddy_skills.py --self-test
 
+  distill-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 蒸馏管道 —— 变异自验
+        run: python tools/distill_skills.py --self-test
+      - name: 蒸馏管道 —— 体检（不可蒸馏是否已登记 / 产物去向是否可核验）
+        run: python tools/distill_skills.py --check
+
   mock-regression:
     runs-on: ubuntu-latest
     steps:

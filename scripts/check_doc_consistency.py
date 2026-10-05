@@ -925,6 +925,165 @@ def d21_workbuddy_path_sot(v: RepoView):
     return True, f"WorkBuddy 路径与工具默认目标一致（{expected}）"
 
 
+DISTILL_TOOL = "tools/distill_skills.py"
+DRAFT_INDEX = "skills-drafts/index.json"
+MIN_REASON = 12  # 手工通道登记的最短理由：低于此值视为敷衍
+
+
+def _distill_module():
+    """加载蒸馏工具本身，让「事实」由可执行代码产出，而不是由正则再猜一遍。
+
+    分工：不可蒸馏集合来自**真实跑一遍**的结果（不可篡改，就是事实）；
+    index.json 的登记声明走 RepoView（可篡改）。两侧由判据比对。
+    如果把两侧都用同一份文本读，等于让声明自己给自己作证。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_distill_for_check", ROOT / DISTILL_TOOL)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _draft_index(v: RepoView) -> dict:
+    txt = v.text(DRAFT_INDEX)
+    if not txt:
+        raise ValueError(f"{DRAFT_INDEX} 读不到")
+    try:
+        return json.loads(txt)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"{DRAFT_INDEX} 不是合法 JSON：{e}") from e
+
+
+def d22_manual_channel_registry(v: RepoView):
+    """手工通道登记 == 实测不可蒸馏集合（双向锁死）。
+
+    为什么存在：蒸馏管道对不符合五段结构的素材是**静默跳过**的。
+    早期 `print("✅ 生成 N 个")`，看的人会以为全部处理完了 —— 那是假绿。
+    这里把「有几份走手工通道」钉成必须逐份点名 + 给理由的台账：
+    新增素材忘了处理会红，登记过剩（素材已改好却还挂着）也会红。
+    """
+    v.text(DISTILL_TOOL)  # 执行取证：让 D20 知道这条判据依赖该脚本
+    try:
+        manual = _draft_index(v).get("manual-channel", {})
+    except ValueError as e:
+        return False, str(e)
+
+    mod = _distill_module()
+    real = {rel for rel, _ in mod.scan(ROOT / "skills-drafts")["skipped"]}
+    reg = set(manual)
+
+    problems = [
+        f"登记了但实测可蒸馏/已不存在：{m}"
+        for m in sorted(reg - real)
+    ] + [
+        f"不可蒸馏但未登记（管道会静默吞掉它）：{a}"
+        for a in sorted(real - reg)
+    ]
+    for k in sorted(reg & real):
+        why = str(manual[k]).strip()
+        if len(why) < MIN_REASON:
+            problems.append(f"{k} 理由仅 {len(why)} 字（<{MIN_REASON}）：不许敷衍登记")
+
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"手工通道 {len(reg)} 份已逐份登记，与实测不可蒸馏集合一致"
+
+
+def d23_draft_graduation_vouched(v: RepoView):
+    """index.json 里每个产物都必须有可核验的去向。
+
+    为什么存在：`generated` 列表一度写满 7 条，而 skills-drafts/ 里一个产物都没有。
+    翻遍三个目录才拼出「3 转正 / 4 淘汰」——这个事实本来应该一处可读。
+    不在位且无登记的条目，无法区分「已毕业」与「产物被误删」。
+    """
+    v.text(DISTILL_TOOL)
+    try:
+        data = _draft_index(v)
+    except ValueError as e:
+        return False, str(e)
+
+    mod = _distill_module()
+    no_outcome = mod.NO_OUTCOME
+    grad = data.get("graduated", {})
+    drafts_dir = ROOT / "skills-drafts"
+
+    problems = []
+    vouched = 0
+    for slug in data.get("generated", []):
+        if (drafts_dir / slug / "SKILL.md").is_file():
+            vouched += 1
+            continue
+        g = grad.get(slug)
+        if not g:
+            problems.append(f"{slug}: 产物不在位且无去向登记")
+            continue
+        draft, outcome = str(g.get("draft", "")), str(g.get("outcome", ""))
+        ok_draft = bool(draft) and (ROOT / draft).exists()
+        ok_out = outcome == no_outcome or (bool(outcome) and (ROOT / outcome).exists())
+        if not ok_draft:
+            problems.append(f"{slug}: 原稿路径不存在（{draft or '未登记'}）")
+        if not ok_out:
+            problems.append(f"{slug}: 结果路径不存在（{outcome or '未登记'}）")
+        if ok_draft and ok_out:
+            vouched += 1
+
+    for slug in sorted(set(grad) - set(data.get("generated", []))):
+        problems.append(f"{slug}: 有去向登记但不在 generated 里（登记成了孤儿）")
+
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"{vouched} 个产物去向均可核验（在位或已登记毕业/淘汰）"
+
+
+CI_JOBS_CLAIM = re.compile(r"(\d+)\s*个\s*job")
+
+
+def _ci_job_names(txt: str) -> list[str]:
+    """抽 workflow 的顶层 job 名（`jobs:` 下缩进两格的 key）。
+
+    不用 PyYAML：本脚本承诺零第三方依赖（CI 里也没有 `pip install` 步骤）。
+    job 名在文件里的形态足够规整 —— 顶格是 `jobs:`，job 名固定两格缩进且独占一行，
+    更深层的 steps 属性缩进都 ≥ 4，不会被误收。
+    """
+    lines = txt.splitlines()
+    try:
+        start = next(i for i, l in enumerate(lines) if l.rstrip() == "jobs:")
+    except StopIteration:
+        return []
+    return [m.group(1) for l in lines[start + 1:]
+            if (m := re.match(r"^ {2}([a-z][a-z0-9-]*):\s*$", l))]
+
+
+def d24_ci_job_count(v: RepoView):
+    """NEXT.md「现状锚点」声称的 CI job 数 == workflow 实际 job 数。
+
+    为什么存在：那张表自称「由机验强制，不可手写漂移」，但 job 数一直是手写的 ——
+    加了第 6 个 job 时它就漂了，而 23 条判据没有一条在看它。
+    自称被管着、实际没人管，比明说没管更糟。
+    """
+    wf = v.text(CI_WF)
+    jobs = _ci_job_names(wf)
+    if not jobs:
+        return False, f"{CI_WF}: 抽不到任何 job"
+    # 只在「现状锚点」那一节里找声称：P0.x 的历史叙事会写「CI 加第 5 个 job」，
+    # 说的是当时的情形，本身正确 —— 判据管的是**当前值**,不管历史流水账。
+    # 拿全文件扫描会把合法叙事判成漂移，逼人去篡改历史，那是另一种污染。
+    nxt = v.text("NEXT.md")
+    i = nxt.find("## 现状锚点")
+    if i < 0:
+        return False, "NEXT.md: 找不到「现状锚点」节"
+    j = nxt.find("\n## ", i + 1)
+    anchor = nxt[i: j if j > 0 else len(nxt)]
+    ms = CI_JOBS_CLAIM.findall(anchor)
+    if not ms:
+        return False, "NEXT.md 现状锚点: 找不到 CI job 数的声称"
+    problems = [f"声称 {m} 个 job != 实际 {len(jobs)} 个" for m in ms if int(m) != len(jobs)]
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"CI job 数一致（{len(jobs)}: {', '.join(jobs)}）"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -947,6 +1106,9 @@ CHECKS = [
     ("D19", "issue form 合法且 label 真实存在", d19_issue_forms_valid),
     ("D20", "CI 触发范围覆盖全部被监视文件", d20_ci_paths_cover_watched),
     ("D21", "文档里的 WorkBuddy 路径 == 工具默认目标", d21_workbuddy_path_sot),
+    ("D22", "手工通道登记 == 实测不可蒸馏集合", d22_manual_channel_registry),
+    ("D23", "草稿产物去向必须可核验", d23_draft_graduation_vouched),
+    ("D24", "CI job 数声称 == workflow 实际", d24_ci_job_count),
 ]
 
 
@@ -995,6 +1157,43 @@ def _mut_d20(v) -> dict[str, str]:
     mut = re.sub(r"^[ \t]*- ['\"]?\.gitignore['\"]?[ \t]*\n", "", txt, count=0, flags=re.M)
     assert mut != txt, "D20 变异锚点缺失：CI paths 里找不到 .gitignore"
     return {CI_WF: mut}
+
+
+def _mut_draft_index(v, mutate) -> dict[str, str]:
+    """把 skills-drafts/index.json 解析—变异—序列化回去。
+
+    不用字符串替换：条目外围的缩进/逗号顺序随 json.dumps 变化，
+    锚点一改就失效（这跟"把当前值抄进变异定义"是同一种病）。
+    结构化改动让锚点由**数据的键**保证，键在就在，不会因排版漂移而崩。
+    """
+    data = json.loads(v.text(DRAFT_INDEX))
+    mutate(data)
+    return {DRAFT_INDEX: json.dumps(data, ensure_ascii=False, indent=2)}
+
+
+def _mut_d22(v) -> dict[str, str]:
+    """D22 变异：删掉一条手工通道登记 → 判据必须报「不可蒸馏但未登记」。"""
+    def drop(data):
+        keys = sorted(data.get("manual-channel", {}))
+        assert keys, "D22 变异锚点缺失：manual-channel 为空"
+        del data["manual-channel"][keys[0]]
+    return _mut_draft_index(v, drop)
+
+
+def _mut_d23(v) -> dict[str, str]:
+    """D23 变异：把某个已毕业产物的结果改成不存在的路径。
+
+    必须挑**路径型** outcome：登记为「(已淘汰，无承接物)」的条目按设计不需要路径存在，
+    改它是打不穿判据的（会误判成"判据失效"）。这里挑第一个真实路径动手。
+    """
+    def sabotage(data):
+        mod = _distill_module()
+        grad = data.get("graduated", {})
+        real = [(k, g) for k, g in sorted(grad.items())
+                if str(g.get("outcome", "")) != mod.NO_OUTCOME]
+        assert real, "D23 变异锚点缺失：没有路径型 outcome"
+        real[0][1]["outcome"] = "skills/no-such-skill-zzz"
+    return _mut_draft_index(v, sabotage)
 
 
 MUTATIONS: dict[str, callable] = {
@@ -1047,6 +1246,12 @@ MUTATIONS: dict[str, callable] = {
             "| WorkBuddy | `~/.workbuddy/skils/` |",
         )
     },
+    "D22": _mut_d22,
+    "D23": _mut_d23,
+    # D24 变异打 NEXT.md 的声称数字（workflow 是真值源，不该被篡改）：
+    # 写成 "99 个 job" 而不是改 workflow —— 判据的职责是让**文档追上事实**，
+    # 把 workflow 改掉等于反向坐实错误声称。
+    "D24": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"(\d+)\s*个\s*job", offset=90)},
 }
 
 

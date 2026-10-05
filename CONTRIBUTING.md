@@ -42,8 +42,22 @@
 6. 跑一次全量机验，提 PR
 ```
 
-被拒绝的草稿不会删除，而是移入 `skills-drafts-archive/rejected/` 并附评审意见
-（见 `skills-drafts-archive/rejected/REVIEW-2026-09-23.md`）——**拒绝也是资产**。
+草稿产出后有两种结局，落到不同目录（**目录名必须等于结局**，
+历史上 `rejected/` 里混放过 2 个转正原稿，靠肉眼才辨认出来）：
+
+| 结局 | 目录 | 含义 |
+|---|---|---|
+| 转正为正式 skill | `skills-drafts-archive/graduated/` | 评审通过，已重写为 `skills/<name>/` |
+| 淘汰 | `skills-drafts-archive/rejected/` | 与现有 skill 重复或无增量，**原稿保留** |
+
+无论哪种结局，都必须同时在 `skills-drafts/index.json` 的 `graduated` 里登记
+`draft`（原稿真实路径）+ `outcome`（转正的 skill 路径，或 `(已淘汰，无承接物)`）——
+判据 D23 会核验每一条路径真实存在。**没登记的产物无法区分「已毕业」与「被误删」。**
+
+写新 source 笔记时注意：蒸馏管道只认 `## 可执行规则` 这一精确标题，
+不满足的素材会被**跳过**。要么把笔记写成五段结构，要么在 index.json 的
+`manual-channel` 里逐份登记（写明它为什么走手工通道）——判据 D22 双向锁死：
+漏登记会红，登记了不存在的也会红。别跳过这一步指望管道悄悄处理。
 
 ---
 
@@ -98,7 +112,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 21 条判据，含变异自验
+# 1) 文档一致性 —— 24 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -142,11 +156,12 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 ## 五、CI 会跑什么
 
-`.github/workflows/golden-regression.yml` 共 5 个 job：
+`.github/workflows/golden-regression.yml` 共 6 个 job：
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（21 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
+| `doc-consistency` | 文档与实际是否一致（24 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
+| `distill-pipeline` | 蒸馏管道：变异自验 + 体检（不可蒸馏是否登记、产物去向是否可核验：`tools/distill_skills.py`） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
 | `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录） |
 | `graders-smoke` | 判分器冒烟 |
