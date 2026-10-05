@@ -98,7 +98,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 20 条判据，含变异自验
+# 1) 文档一致性 —— 21 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -129,6 +129,7 @@ README ×2 / HEARTBEAT / NEXT / CONTRIBUTING 里（实测每轮 16+ 处）。
 | `check_doc_consistency.py` | 无（纯标准库） |
 | `check_skill_tags.py` | 无（纯标准库） |
 | `sync_counts.py` | 无（纯标准库） |
+| `workbuddy_skills.py` | 无（纯标准库）—— 但只在**装了 WorkBuddy 的机器**上有意义，**不是 PR 门禁**；它的 `--self-test` 用临时 fixture，所以能进 CI |
 | `graders.py` | **需要 PyYAML** —— `pip install pyyaml` |
 
 `graders.py` 那一条要特别小心：**本机装了 PyYAML 不代表 CI 有**。
@@ -141,12 +142,13 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 ## 五、CI 会跑什么
 
-`.github/workflows/golden-regression.yml` 共 4 个 job：
+`.github/workflows/golden-regression.yml` 共 5 个 job：
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（20 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
+| `doc-consistency` | 文档与实际是否一致（21 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
+| `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录） |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |
 

@@ -879,6 +879,52 @@ def d20_ci_paths_cover_watched(v: RepoView):
     return True, f"CI 触发范围覆盖全部 {len(watched)} 个被监视路径"
 
 
+# ── D21：文档里的 WorkBuddy 路径 == 同步工具的默认目标 ──────────
+# 背景：本仓新增了 WorkBuddy 通道（tools/workbuddy_skills.py 负责把 skills/ 同步进
+# `~/.workbuddy/skills/`）。文档里若把它写成 `~/.workbuddy/skill` 之类，读者照着拷就会
+# 装到错地方 —— 而这类错字没有任何别的判据管得住（D14 只查「中英对等 + ✅ 有证据」，
+# 不查路径本身对不对）。
+# 解法不是"两边都写对"，而是**只让它有一处事实来源**：文档里的路径必须等于工具常量。
+
+WB_ROW = re.compile(r"^\|\s*WorkBuddy\s*\|\s*`([^`]+)`\s*\|", re.M)
+WB_TOOL = "tools/workbuddy_skills.py"
+
+
+def _wb_expected_path() -> str:
+    """从同步工具里读默认目标，渲染成文档形式（~/... + 结尾斜杠）。"""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_wb_skills_for_check", ROOT / WB_TOOL)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    p = mod.DEFAULT_TARGET
+    try:
+        rel = str(p.relative_to(Path.home())).replace("\\", "/")
+        return "~/" + rel.rstrip("/") + "/"
+    except ValueError:  # 目标不在 home 下（自定义 --target 才会发生）
+        return str(p).replace("\\", "/").rstrip("/") + "/"
+
+
+def d21_workbuddy_path_sot(v: RepoView):
+    """README ×2 里写的 WorkBuddy skill 路径必须等于同步工具的默认目标。
+
+    单一真相源：路径的事实来源是 `tools/workbuddy_skills.py` 的 DEFAULT_TARGET，
+    文档只是它的展示形式。两者一旦分离，就是本项目反复在治的同一种病。
+    """
+    v.text(WB_TOOL)  # 执行取证：让 D20 知道这个文件在监视范围内
+    expected = _wb_expected_path()
+    problems = []
+    for f in ("README.md", "README.zh.md"):
+        hits = WB_ROW.findall(v.text(f))
+        if len(hits) != 1:
+            problems.append(f"{f}: WorkBuddy 行匹配到 {len(hits)} 处（应为 1 处）")
+        elif hits[0] != expected:
+            problems.append(f"{f}: 文档写 `{hits[0]}` != 工具默认目标 `{expected}`")
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"WorkBuddy 路径与工具默认目标一致（{expected}）"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -900,6 +946,7 @@ CHECKS = [
     ("D18", "PR 模板引用的自检脚本真实存在", d18_pr_template_commands),
     ("D19", "issue form 合法且 label 真实存在", d19_issue_forms_valid),
     ("D20", "CI 触发范围覆盖全部被监视文件", d20_ci_paths_cover_watched),
+    ("D21", "文档里的 WorkBuddy 路径 == 工具默认目标", d21_workbuddy_path_sot),
 ]
 
 
@@ -990,6 +1037,16 @@ MUTATIONS: dict[str, callable] = {
             'labels: ["bug"]', 'labels: ["triage"]')
     },
     "D20": _mut_d20,
+    # D21 的变异必须打在**平台表那一行**上：路径在 README 里出现两次
+    # （安装章节的代码块 + 平台表），只改首处的话表格仍是正确值，判据照过，
+    # 变异就成了"打不穿"的假绿。锚点取整行，天然唯一。
+    "D21": lambda v: {
+        "README.md": _sub1(
+            v.text("README.md"),
+            "| WorkBuddy | `~/.workbuddy/skills/` |",
+            "| WorkBuddy | `~/.workbuddy/skils/` |",
+        )
+    },
 }
 
 

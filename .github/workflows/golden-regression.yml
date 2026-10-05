@@ -87,6 +87,16 @@ jobs:
           python tools/sync_counts.py --self-test
           python tools/sync_counts.py
 
+  workbuddy-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: WorkBuddy 通道同步器 —— 变异自验（临时 fixture，不碰真实目录）
+        run: python tools/workbuddy_skills.py --self-test
+
   mock-regression:
     runs-on: ubuntu-latest
     steps:

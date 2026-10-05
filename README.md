@@ -122,6 +122,21 @@
 
 ## 🔧 Installation
 
+### WorkBuddy
+
+```bash
+git clone https://github.com/TrueFurina/AGI-Distiller.git
+python AGI-Distiller/tools/workbuddy_skills.py --check   # 看漂移：一致 / 过期 / 未安装
+python AGI-Distiller/tools/workbuddy_skills.py --apply   # 同步（覆盖前自动备份 + 回读核验）
+```
+
+> WorkBuddy scans `~/.workbuddy/skills/<name>/SKILL.md` and registers each one as a skill
+> (`source: "userSettings"`). Restart the client / refresh the skill list to load new ones.
+> The tool does **file-level** sync and verification only — it cannot prove the client loaded them.
+> Compatibility note: some skills here use `context` / `agent` / `maxTurns` / `disallowedTools`
+> (Claude Code-specific fields) which have **zero precedent** among the other installed skills —
+> whether WorkBuddy honours them is unverified.
+
 ### Claude Code
 
 ```bash
@@ -152,10 +167,14 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### Platform Compatibility
 
-> **Verified** — ✅ 实测 = ran the full chain on this machine: `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`, all 19 skills loaded (Claude Code v2.1.251 — the run predates the current skill count; **not re-run** since). ⚠️ 未实测 / unverified = path follows that platform's public docs; no CLI available here, never actually run.
+> **Verified** — ✅ 实测 = actually ran on this machine, with the evidence named below.
+> - **WorkBuddy** — skills copied into `~/.workbuddy/skills/` are picked up by the client: verified by reading the client's **own** skill registry cache (`.skill-list-cache.json`, entries with `source: "userSettings"`), plus byte-level parity from `tools/workbuddy_skills.py --check` (21/21 in place). **Not** verified: whether the Claude-Code-only frontmatter fields (`context` / `agent` / `maxTurns` / `disallowedTools`) are honoured — they have zero precedent among the other 80+ installed skills.
+> - **Claude Code** — full chain on this machine: `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details`, all 19 skills loaded (v2.1.251 — the run predates the current skill count; **not re-run** since).
+> ⚠️ 未实测 / unverified = the path follows that platform's public docs; no CLI available here, never actually run.
 
 | Platform | Path | Status |
 |----------|------|--------|
+| WorkBuddy | `~/.workbuddy/skills/` | ✅ 实测 |
 | Claude Code | `~/.claude/skills/` | ✅ 实测 |
 | Codex CLI | `~/.codex/skills/` | ⚠️ 未实测 |
 | Cursor | `.cursor/skills/` | ⚠️ 未实测 |

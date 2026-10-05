@@ -15,7 +15,8 @@
 | 生产级 skill | 21 |
 | ATOMCODE 规则 | 14 节 |
 | 落盘蒸馏笔记 | 10（`sources/**/*.md`） |
-| CI | `.github/workflows/golden-regression.yml` — 4 个 job（graders-smoke / skill-tags / doc-consistency / mock-regression） |
+| CI | `.github/workflows/golden-regression.yml` — 5 个 job（graders-smoke / skill-tags / doc-consistency / workbuddy-sync / mock-regression） |
+| WorkBuddy 通道 | 21/21 在位（`python tools/workbuddy_skills.py --check`） |
 | 版本 | `0.1.0`（未打 tag） |
 
 ---
@@ -127,10 +128,11 @@ P0.4 留了一句预言：**"跑通一次不算证据"**。本轮就是回去验
 
 ## P1 · 待办（真实存在，非凑数）
 
-### 1. Codex CLI 安装路径未实装
+### 1. ✅ 已删除：Codex CLI 安装路径（按「停止条件」销账）
 
-`npx skills add TrueFurina/AGI-Distiller` —— 已核实 CLI 存在（`skills@1.7.0`）、`add <owner/repo>` 语法合法，
-但本机无 Codex CLI，**未实装**。README 已如实标注。待有 Codex CLI 的机器补验。
+这条连续多轮没有动作、也没有阻塞别人；且 2026-10-05 明确：**仓库主人不使用 Codex CLI**。
+按本文件末尾的停止条件直接删除，不留占位。README 平台表继续如实标 `⚠️ 未实测`，
+但不为它排任何工作量 —— 真有使用者出现再补验，比现在"待办挂着不动"诚实。
 
 ### 2. ✅ 已解决：CONTRIBUTING.md（见 P0.3）
 
@@ -176,13 +178,20 @@ P0.4 留了一句预言：**"跑通一次不算证据"**。本轮就是回去验
   写死就是又一处会漂的数字；要看当前值跑 `--check` / `--self-test`，工具会打印。
   **README skill 表的摘要仍要人工写**——
   若第三遍增长时这一步仍然嫌烦，再考虑让工具生成占位摘要 + 人工润色，而不是现在凭空造。
+- **新增 skill 后要回灌本地通道**：`python tools/workbuddy_skills.py --apply`。
+  本轮实测的教训就是"上游改了三轮、下游还在旧快照" —— 计数同步解决的是**文档**漂移，
+  这条解决的是**部署产物**漂移，两码事，缺一不可。
 
-### 6. 安装链路实测记录滞后于 skill 计数
+### 6. ✅ 已销账：安装链路实测记录滞后 —— 但**不追改**
 
-README 的 `Component inventory: Skills (19)` 是 **Claude Code v2.1.251 那次运行的观测值**，
-新增第 20、21 个 skill 后**未复跑**安装链路。已在 README 中就地标注"该记录早于当前计数、未复跑"，
-**没有把它追改成 20 或 21**——那等于伪造一次没跑过的验证。
-补验条件：有 Claude Code 环境的机器，跑 `plugin validate` → `marketplace add` → `plugin install` → `plugin details`。
+README 的 `Component inventory: Skills (19)` 是 Claude Code v2.1.251 那次的观测值，
+新增第 20、21 个 skill 后未复跑。**处理方式：不追改、不复跑。**
+
+- 不复跑：仓库主人不使用 Claude Code（2026-10-05 明确），为它复跑一遍没有收益。
+- 不追改：把数字改成 20 / 21 ＝ 伪造一次没跑过的验证，这比数字旧更坏。
+
+README 已就地标注"该记录早于当前计数、未复跑"；同时**补上了真正在用的那条通道**（WorkBuddy，见 P0.7），
+所以这条记录不再是"唯一实测通道"，而是并列的其中之一。此事到此为止。
 
 ---
 
@@ -225,6 +234,46 @@ README 的 `Component inventory: Skills (19)` 是 **Claude Code v2.1.251 那次�
 
 顺便清掉一处同类漂移：文档里写着 `sync_counts.py`「25 个站点」，而工具实际登记数早已变化，
 且"注册数 / 自检口径"两个数还不一致。**这类数字不写进文档** —— 让工具打印，写死就是又一处会漂的数字。
+
+---
+
+## P0.7 · 真实消费通道：WorkBuddy ✅ 本轮完成（2026-10-05）
+
+前面几轮把安装链路全押在 Claude Code marketplace 上。本轮被一句话点醒：
+**仓库主人不用 Claude Code，也不用 Codex。** 于是"唯一实测过的宿主"其实是个没人在用的宿主，
+而**真正在用的那条通道，文档里一个字都没有**。
+
+### 开工前先核验事实（没凭印象）
+
+- `~/.workbuddy/skills/` 里本来就躺着本仓 4 个 skill（2026-09-19 手工拷进去的）。
+- 其中 3 个是**那天的旧快照**：仓库此后又改了三轮（`context: fork` 隔离改造、溯源标记回填、
+  五步定位法），本地通道停在了旧版本上；**另 17 个从未安装**。
+- 这条通道**确实生效**：WorkBuddy 自己的技能注册缓存（`.skill-list-cache.json`，135 条）里，
+  本仓那 4 个以 `source: "userSettings"` 被登记 —— 那份缓存是**客户端写的，不是我们写的**。
+
+| 动作 | 验收证据 |
+|---|---|
+| 新增 `tools/workbuddy_skills.py` | 四命令 `--check` / `--apply` / `--census` / `--self-test`；变异自验 **16/16** 可检出 |
+| 同步 + 回读核验 | 新增 17、刷新 3 → `--check` **21/21 一致**；覆盖前备份落盘 `~/.workbuddy/skills-backup-agidistiller/<ts>/` |
+| 新增判据 D21 | 文档里的 WorkBuddy 路径必须**等于工具的 `DEFAULT_TARGET`**（单一真相源，不让路径有两处事实） |
+| 平台表补 WorkBuddy | 中英对等 8 个平台 / 2 个有实测证据；实测口径按平台点名**证据来源** |
+| CI 加第 5 个 job `workbuddy-sync` | 同步器的变异自验进 CI，防工具自身腐烂 |
+
+### 本轮自己造的伪影（都当场修掉）
+
+1. **普查基线含自身 → 警告被自己的产物消解**：`--census` 判"字段无先例"时若把本仓 skill 也算作基线，
+   那么把 skill 装上就等于给它自己造了个先例 —— 实测同步 21 个之后，从"4 个字段无先例"
+   当场变成"无越界字段"。**自证循环不是证据**：基线改为只认他方 skill，并补了回归用例。
+2. **self-test 的 CRLF 用例本身就是错的**：写成 `replace(b"\n", b"\r\n")`，在 CRLF 源上得到
+   `\r\r\n`（那是内容差异，不是换行差异），于是"归一化失效"是个**假警报**；
+   改成显式写成 LF 才是真用例。变异自验的价值恰恰在此 —— **它先抓出了写变异的人**。
+
+### 仍未闭环（如实标出，不当已实现）
+
+- **WorkBuddy 是否识别 `context` / `agent` / `maxTurns` / `disallowedTools`**：这 4 个字段在
+  其余 80+ 个已装 skill 里**零先例**。工具会一直把它列为"无先例"，但要证伪只能**重启客户端**后看 ——
+  同步器只证明**文件级**一致，不代证客户端加载。
+- 因此 README 的 WorkBuddy 行标 ✅ 时，口径已写明"实测的是**登记与字节一致**，不是加载语义"。
 
 ---
 

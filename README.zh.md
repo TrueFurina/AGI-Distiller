@@ -118,6 +118,20 @@
 
 ## 🔧 安装方式
 
+### WorkBuddy
+
+```bash
+git clone https://github.com/TrueFurina/AGI-Distiller.git
+python AGI-Distiller/tools/workbuddy_skills.py --check   # 看漂移：一致 / 过期 / 未安装
+python AGI-Distiller/tools/workbuddy_skills.py --apply   # 同步（覆盖前自动备份 + 回读核验）
+```
+
+> WorkBuddy 扫描 `~/.workbuddy/skills/<name>/SKILL.md` 并逐个登记为 skill（`source: "userSettings"`）。
+> 装完需重启客户端 / 刷新技能列表才会加载。
+> 该工具只做**文件级**同步与核验，**不能**代证客户端真的加载了它们。
+> 兼容性提醒：本仓有 skill 用了 `context` / `agent` / `maxTurns` / `disallowedTools`
+> （Claude Code 专有字段），它们在已装的其他 skill 里**零先例**——WorkBuddy 是否识别未经验证。
+
 ### Claude Code
 
 ```bash
@@ -146,10 +160,14 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### 平台兼容性
 
-> **实测口径** — ✅ 实测 = 在本机跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details` 全链路，19 个 skill 全部被加载（Claude Code v2.1.251——该次运行早于当前 skill 计数，此后**未复跑**）。⚠️ 未实测 = 路径按该平台公开文档填写，本机无对应 CLI，从未真正跑过。
+> **实测口径** — ✅ 实测 = 确实在本机跑过，且下面点名了证据来源。
+> - **WorkBuddy** — 拷进 `~/.workbuddy/skills/` 的 skill 会被客户端拾取：证据是读**客户端自己**的技能注册缓存（`.skill-list-cache.json` 中以 `source: "userSettings"` 登记的条目），外加 `tools/workbuddy_skills.py --check` 的逐字节一致性（21/21 在位）。**未**验证的是：Claude Code 专有字段（`context` / `agent` / `maxTurns` / `disallowedTools`）是否被识别——它们在已装的其他 80+ 个 skill 里零先例。
+> - **Claude Code** — 本机跑通 `claude plugin validate` → `marketplace add` → `plugin install` → `plugin details` 全链路，19 个 skill 全部被加载（v2.1.251——该次运行早于当前 skill 计数，此后**未复跑**）。
+> ⚠️ 未实测 = 路径按该平台公开文档填写，本机无对应 CLI，从未真正跑过。
 
 | 平台 | 路径 | 状态 |
 |----------|------|--------|
+| WorkBuddy | `~/.workbuddy/skills/` | ✅ 实测 |
 | Claude Code | `~/.claude/skills/` | ✅ 实测 |
 | Codex CLI | `~/.codex/skills/` | ⚠️ 未实测 |
 | Cursor | `.cursor/skills/` | ⚠️ 未实测 |
