@@ -727,6 +727,158 @@ def d19_issue_forms_valid(v: RepoView):
     return True, f"{len(files)} 个 issue form 均合法，label 均在仓库集合内"
 
 
+# ── D20：CI 触发路径必须覆盖「被机验监视的文件」 ──────────────
+# 背景（2026-10-05 实测）：两套工具（本脚本 + tools/sync_counts.py）共监视 20+ 个文件，
+# 而 CI 的 paths 只列了其中一部分 —— 改 CONTRIBUTING.md / NEXT.md / ROADMAP.md /
+# DISTILLER.md / .claude-plugin/plugin.json / .github/ISSUE_TEMPLATE/*.yml / 两份
+# pre-commit 脚本，**都不会触发 CI**。门存在，但不为这些改动而开。
+#
+# 最刺眼的一条是自己造的：上一轮把 plugin.json 从仓库根移入 .claude-plugin/ 后，
+# CI 里那条根级 `plugin.json` 就再也匹配不到它了（移动文件时不只脚本要跟着改）。
+#
+# 做法：watched 集合靠**执行取证** —— 挂一层记录器跑一遍全部判据，再读 sync_counts 的
+# 站点表；不靠正则猜文件名。猜出来的集合会与真实访问漂移，那正是它要防的病。
+
+CI_WF = ".github/workflows/golden-regression.yml"
+
+
+def _ci_paths(txt: str) -> list[str]:
+    """抽出 workflow 里各触发条件的 paths 条目（容忍缩进与引号差异）。"""
+    lines = txt.splitlines()
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if not re.match(r"^\s*paths:\s*$", line):
+            continue
+        base = len(line) - len(line.lstrip())
+        for nxt in lines[i + 1:]:
+            if not nxt.strip():
+                continue
+            if len(nxt) - len(nxt.lstrip()) > base and nxt.strip().startswith("- "):
+                out.append(nxt.strip()[2:].strip().strip("'\""))
+            else:
+                break
+    return out
+
+
+def _glob_to_re(pat: str) -> str:
+    """GitHub paths 语义：`**` 跨目录层级（可匹配零层），`*` 不跨 `/`。
+
+    注意 workflow 里用的是官方示例形式 `**.md`（文档原话：匹配"任意位置的 .md 文件"），
+    并额外显式补了 `*.md` 覆盖仓库根 —— `**/*.md` 对根目录文件的行为官方没有权威说明，
+    本判据不去赌它。
+    """
+    out, i = "", 0
+    while i < len(pat):
+        if pat.startswith("**/", i):
+            out += "(?:.*/)?"
+            i += 3
+        elif pat.startswith("**", i):
+            out += ".*"
+            i += 2
+        elif pat[i] == "*":
+            out += "[^/]*"
+            i += 1
+        elif pat[i] == "?":
+            out += "[^/]"
+            i += 1
+        else:
+            out += re.escape(pat[i])
+            i += 1
+    return out
+
+
+def _covered(path: str, patterns: list[str]) -> bool:
+    return any(re.fullmatch(_glob_to_re(p), path) for p in patterns)
+
+
+class _ProbeView(RepoView):
+    """记录「判据实际读了什么」的视图 —— 执行取证，不靠正则猜文件名。
+
+    只记录**具体文件**：目录本身不是 CI 的触发单位，真正会被改动的是文件。
+    早先记录 `skills/**` 这类前缀，导致 CI（按文件类型覆盖）被误判成不达标 ——
+    判据看错了对象，改的是判据，不是文档。
+    """
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.seen: set[str] = set()
+
+    def text(self, rel: str) -> str:
+        self.seen.add(rel)
+        return super().text(rel)
+
+    def files_under(self, rel: str, suffix: str) -> list[str]:
+        found = super().files_under(rel, suffix)
+        self.seen.update(found)
+        return found
+
+    def files_glob(self, pattern: str) -> list[str]:
+        found = super().files_glob(pattern)
+        self.seen.update(found)
+        return found
+
+    def dirs(self, rel: str) -> list[str]:
+        return super().dirs(rel)  # 目录名不是文件；其下文件由 files_under / files_glob 现身
+
+
+def _watched(v: RepoView) -> set[str]:
+    """被两套工具监视的路径全集（文件 + 目录前缀模式）。"""
+    probe = _ProbeView()
+    for cid, _title, fn in CHECKS:
+        if cid == "D20":  # 跳过自身：否则 run_all -> D20 -> run_all 无限递归
+            continue
+        try:
+            fn(probe)
+        except Exception:
+            pass  # 某条判据崩溃时它自己会报 FAIL，这里只关心它读了哪些文件
+    seen = set(probe.seen)
+
+    sys.path.insert(0, str(ROOT / "tools"))
+    import sync_counts as sc  # noqa: E402
+
+    for _n, f, _p, _fld in sc.SITES:
+        seen.add(f)
+    for _n, f, _p in sc.BREAKDOWN_SITES:
+        seen.add(f)
+    for f, _p in sc.FROZEN_MARKERS:
+        seen.add(f)
+    seen |= set(sc.SIZE_SITES.keys())
+
+    def _rec(rel: str) -> str:
+        seen.add(rel)
+        return v.text(rel)
+
+    try:
+        sc.scan(read=_rec)
+    except Exception:
+        pass
+
+    # 只保留真实存在的文件：路径写错、文件不存在属别的判据管辖，不由本判据报
+    return {p for p in seen if "*" not in p and (ROOT / p).is_file()}
+
+
+def d20_ci_paths_cover_watched(v: RepoView):
+    """CI 必须为「每一个被机验监视的文件」而触发。
+
+    否则会出现最坏的一种假绿：门写好了、判据也是活的，但**改那个文件时 CI 根本不跑** ——
+    本地 --self-test 全绿、远端一片绿，而漂移已经进去了。
+    """
+    txt = v.text(CI_WF)
+    if not txt:
+        return False, f"缺少 {CI_WF}"
+    pats = _ci_paths(txt)
+    if not pats:
+        return False, f"{CI_WF} 未解析到 paths —— 触发范围不可核验（放开为全量跑时请更新本判据）"
+    watched = _watched(v)
+    gaps = sorted(p for p in watched if not _covered(p, pats))
+    if gaps:
+        return False, (
+            f"{len(gaps)}/{len(watched)} 个被监视路径不在 CI 触发范围（改它们 CI 不会跑）: "
+            + ", ".join(gaps)
+        )
+    return True, f"CI 触发范围覆盖全部 {len(watched)} 个被监视路径"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -747,6 +899,7 @@ CHECKS = [
     ("D17", "「N 条判据」声称 == 实际条数", d17_checks_count_claims),
     ("D18", "PR 模板引用的自检脚本真实存在", d18_pr_template_commands),
     ("D19", "issue form 合法且 label 真实存在", d19_issue_forms_valid),
+    ("D20", "CI 触发范围覆盖全部被监视文件", d20_ci_paths_cover_watched),
 ]
 
 
@@ -783,6 +936,18 @@ def _mut_d16(v) -> dict[str, str]:
     """
     txt = v.text("DISTILLER.md")
     return {"DISTILLER.md": _mut_num(txt, r"(\d+) 份笔记", offset=50).replace("份笔记", "篇笔记", 1)}
+
+
+def _mut_d20(v) -> dict[str, str]:
+    """D20 变异：把 CI 触发范围里的 .gitignore 抹掉。
+
+    必须**两处都抹**（push 与 pull_request 各有一条）—— 只抹一条时另一条仍在，
+    `_ci_paths` 取并集后覆盖依旧成立，变异打不穿判据，会被误判成"判据失效"。
+    """
+    txt = v.text(CI_WF)
+    mut = re.sub(r"^[ \t]*- ['\"]?\.gitignore['\"]?[ \t]*\n", "", txt, count=0, flags=re.M)
+    assert mut != txt, "D20 变异锚点缺失：CI paths 里找不到 .gitignore"
+    return {CI_WF: mut}
 
 
 MUTATIONS: dict[str, callable] = {
@@ -824,6 +989,7 @@ MUTATIONS: dict[str, callable] = {
             v.text(".github/ISSUE_TEMPLATE/bug.yml"),
             'labels: ["bug"]', 'labels: ["triage"]')
     },
+    "D20": _mut_d20,
 }
 
 

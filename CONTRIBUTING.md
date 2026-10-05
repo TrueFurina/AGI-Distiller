@@ -98,7 +98,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 19 条判据，含变异自验
+# 1) 文档一致性 —— 20 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -145,7 +145,7 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（19 条判据 + 计数同步机验：`tools/sync_counts.py`） |
+| `doc-consistency` | 文档与实际是否一致（20 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |
@@ -158,6 +158,13 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 > 注意：**本机绿 ≠ CI 绿**。本机环境可能自带依赖而 CI 是裸的；
 > 反过来，workflow 里若调用了不存在的脚本或参数，也会一直是红的。
 > 加新检查时，把 workflow 里的命令**原样在本地跑一遍**。
+
+> **触发范围也由机器保证**：workflow 的 `paths` 由判据 **D20** 强制 ——
+> 凡被机验读到的文件，都必须落在触发范围内。它走「跑一遍全部判据、记录实际读了哪些文件」
+> 的**执行取证**路线，不靠人维护清单。所以：把文件搬到新目录、或新增一条读新文件的检查之后，
+> **忘了同步 `paths` 会直接让 CI 红**，不用靠记忆兜。
+> （D20 本身就是一次教训的产物：把 `plugin.json` 移进 `.claude-plugin/` 时脚本路径跟着改了，
+> 而 `paths` 里那条根级 `plugin.json` 再也没匹配到它 —— 门在，但不为这个改动而开。）
 
 ---
 

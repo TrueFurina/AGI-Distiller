@@ -1,35 +1,41 @@
 name: golden-regression
 
 on:
+  # 触发范围 = 「任何可能承载被断言事实的文本文件」。
+  # 不逐个列文件名：机验的管辖面（断链覆盖全仓 .md、脚本引用覆盖全仓 .py、
+  # 计数站点散落在全部文档）本来就跨全仓，按类型全覆盖才是完整的那一侧。
+  # 完整性不靠人工维护 —— 由判据 D20 强制：凡被两套工具读到的文件，
+  # 必须落在此范围内，否则 CI 红。
+  #
+  # 模式形式按 GitHub 官方示例（`'**.js'`，文档原话是它匹配"任意位置的 .js 文件"），
+  # 不用 `**/*.md` —— 后者对**仓库根目录文件**的匹配行为官方没给权威说明。
+  # 另显式补一条 `*.md` 兜底：仓库根的文档最多，这条无论如何都覆盖得住。
   push:
     branches: [main]
     paths:
-      - 'golden/**'
-      - 'tools/**'
-      - 'skills/**'
-      - 'sources/**'
-      - 'rules/**'
-      - 'README.md'
-      - 'README.zh.md'
-      - 'HEARTBEAT.md'
-      - 'plugin.json'
+      - '**.md'
+      - '*.md'
+      - '**.py'
+      - '**.yml'
+      - '**.yaml'
+      - '**.json'
+      - '**.sh'
+      - '**.txt'
+      - '**.toml'
       - '.gitignore'
-      - 'scripts/check_doc_consistency.py'
-      - '.github/workflows/golden-regression.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'golden/**'
-      - 'tools/**'
-      - 'skills/**'
-      - 'sources/**'
-      - 'rules/**'
-      - 'README.md'
-      - 'README.zh.md'
-      - 'HEARTBEAT.md'
-      - 'plugin.json'
+      - '**.md'
+      - '*.md'
+      - '**.py'
+      - '**.yml'
+      - '**.yaml'
+      - '**.json'
+      - '**.sh'
+      - '**.txt'
+      - '**.toml'
       - '.gitignore'
-      - 'scripts/check_doc_consistency.py'
   workflow_dispatch:
 
 jobs:
