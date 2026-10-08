@@ -1,0 +1,35 @@
+---
+url: https://mp.weixin.qq.com/s/2jjaDcPGpRuWci32UPFUpA
+fetched: 2026-10-09
+status: ok
+title: 奇舞周刊第563期：前端物料库的设计
+account: 奇舞精选
+chars: 980
+---
+
+奇舞推荐■ ■ ■前端物料库的设计
+基于 Nexus3 构建统一前端物料平台，支持 npm/UMD/图标，提供 bpm 发布、搜索、分类、文档及依赖治理。
+京东零售重磅开源 | OxyGent：像搭乐高一样组装AI团队
+京东开源 OxyGent 框架，用 Python 乐高式拼装多智能体系统，支持弹性扩展、全链路可追溯与群体智能。
+我的Cursor编程实践经验分享
+用标准 Prompt+Rules+MCP 流程提效日常开发，附 Go 规范与 Cursor Rules 模板，并对比 DeepResearch 深度研究能力。
+
+技术实践■ ■ ■VitePress 彩虹动画
+在 VitePress 自定义主题中，用 UnoCSS 与 CSS 变量实现可开关的炫酷彩虹动画，并提供完整代码与集成方法。
+【AI初体验】用cursor复刻一个掘金网站
+零手写代码，用 Cursor 5 小时还原掘金首页，分享提示词技巧、样式微调与 AI 编程体验总结。
+Trae 官网拉风的动画原来出自这里呀！
+trae 官网酷炫动画源自 vue-bits 组件库，介绍其安装与使用方式，并展示 Bits Dither 动画效果。
+
+拓展边界■ ■ ■别用语言描述，直接点！Lovart 正式版把 AI 交互卷到新变态级别
+Lovart 正式版上线 ChatCanvas，支持图上评论、框选修改与多图联动，实现“边说边改”的 Agent 体验。
+入局AI Infra：程序员必须了解的AI系统设计与挑战知识
+从 CPU 到 GPU 的硬件跃迁、PyTorch 框架、训练/推理优化（CUDA Graph、KV Cache、连续批处理）全面解读 AI Infra。
+开闭原则：软件设计的核心准则与实践权衡
+深度剖析 OCP 含义、演变、适用场景与误解，结合 React/TypeScript 示例给出避免过度工程的最佳实践。
+
+- END -
+如果您关注前端+AI 相关领域可以扫码进群交流
+
+添加小编微信进群😊
+关于奇舞团奇舞团是 360 集团最大的大前端团队，非常重视人才培养，有工程师、讲师、翻译官、业务接口人、团队 Leader 等多种发展方向供员工选择，并辅以提供相应的技术力、专业力、通用力、领导力等培训课程。奇舞团以开放和求贤的心态欢迎各种优秀人才关注和加入奇舞团。
