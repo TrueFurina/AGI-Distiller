@@ -5,7 +5,7 @@ title: Story Is All You Need：扒透35篇顶会最佳/杰出论文的叙事密�
 account: 人工智能学社
 predistilled: 2026-10-08
 model: lite
-reviewed: pending
+reviewed: approved（人工复核通过，已入 wechat-distilled.md 索引）
 ---
 
 ## 痛点
