@@ -15,9 +15,16 @@
     * 不可蒸馏的 source 必须**显式报出来**，不许静默跳过。
       早期版本只 print「✅ 生成 N 个」，把不可蒸馏的吞掉 —— 那是假绿：
       N 是"成功数"不是"总数"，看输出的人会以为全部处理完了。
-    * 不为了刷绿而放宽标题正则。素材用 `## 解法（可执行规则）` 这类变体时，
-      正确做法是**报出来让人裁决**（改素材 or 登记为手工通道），
-      不是悄悄放宽匹配把不合格的产物算进去。
+    * 不为了刷绿而放宽标题正则 —— 但**别把两种完全不同的事混为一谈**：
+        - 刷绿 = 把**没有规则内容**的素材算成合格（例如编号式规范摘录，
+          章节是「一、二、三」，本来就没有可执行规则段）。这类必须继续报出来。
+        - 损失 = 把**内容完全合格、只是标题写法不同**的素材弄丢
+          （例如 `## 解法（可执行规则）`，段内是 R1–R7 真规则）。
+          这类应当识别，见下面的 RULE_HEADERS 白名单。
+      早先版本用一句「不放宽正则」同时处理了这两种，结果把后者也一起丢了 ——
+      那是**过度概括**：拒刷绿是对的，但代价是让管道处理不了自己本该处理的素材。
+    * 同名标题白名单里的每一条，都必须**人工读过段内内容确认合格**才能加。
+      这不是正则放宽（无约束通配），是**把人工裁决显式记下来**。
 """
 import re
 import sys
@@ -29,9 +36,26 @@ SOURCES = ROOT / "sources"
 OUT = ROOT / "skills-drafts"
 ARCHIVE = ROOT / "skills-drafts-archive"
 
-RULE_HEADER = re.compile(r"^##\s*可执行规则\s*$", re.M)
+# 规则段标题：主写法 + 已人工确认过的同义写法（按优先级尝试）。
+# 每条白名单都对应一次"读过段内内容、确认是真规则"的人工裁决：
+#   - `## 可执行规则`                 主写法（laodad 4 份 / tencent 1 / wechat 2）
+#   - `## 解法（可执行规则）`          sources/comment-distillery-distilled.md，
+#                                     段内为 R1–R7 可执行规则，内容合格，仅标题带括号
+# 加新条目前先读内容；不要写 `.*可执行规则.*` 这类通配 —— 那才是刷绿。
+RULE_HEADERS = [
+    re.compile(r"^##\s*可执行规则\s*$", re.M),
+    re.compile(r"^##\s*解法（可执行规则）\s*$", re.M),
+]
+
+# 陷阱段标题：同样存在带括号说明的写法。
+# 这里必须支持变体，否则段结束判定失效 —— 规则段会一路吞到文件末尾，
+# 把「与现有体系对照」「优先级裁决」等无关章节一起收进草稿。
+TRAP_HEADERS = [
+    re.compile(r"^##\s*陷阱\s*$", re.M),
+    re.compile(r"^##\s*陷阱（[^）]*）\s*$", re.M),
+]
+
 META_TITLE = re.compile(r"^\s*[-*]\s*标题[:：]\s*(.+)$", re.M)
-TRAP_HEADER = re.compile(r"^##\s*陷阱\s*$", re.M)
 ANY_HEADER = re.compile(r"^##\s+.+$", re.M)
 
 # 「淘汰」的合法登记值：产物被判定无承接物，不是丢了。
@@ -61,22 +85,37 @@ def diagnose(text: str) -> str:
     """为什么这份 source 不可蒸馏 —— 给具体原因，别只说"缺章节"。"""
     near = NEAR_MISS.search(text)
     if near:
-        return f"标题形近但不匹配：`{near.group(0).strip()}`（本管道只认精确的 `## 可执行规则`）"
+        return (f"标题形近但不在白名单：`{near.group(0).strip()}`"
+                f"（已认可写法：{'、'.join(h.pattern for h in RULE_HEADERS)}）")
+    if not ANY_HEADER.search(text):
+        return "无任何 `## ` 章节"
     heads = [m.group(0).strip() for m in ANY_HEADER.finditer(text)]
-    if heads:
-        preview = "；".join(h[:24] for h in heads[:4])
-        return f"无 `## 可执行规则` 段，实际章节：{preview}"
-    return "无任何 `## ` 章节"
+    preview = "；".join(h[:24] for h in heads[:4])
+    return f"无规则段（已认可写法均不匹配），实际章节：{preview}"
+
+
+def _first_section(text: str, headers: list[re.Pattern]) -> str:
+    """按优先级取第一个命中且非空的段。
+
+    段结束一律用「下一个二级标题」（ANY_HEADER），不再用"陷阱标题"当终止符：
+    早期那样写，一旦素材的陷阱标题带括号（或压根没有陷阱段），
+    规则段就会一路吃到文件末尾，把后续无关章节一起收进草稿。
+    """
+    for h in headers:
+        s = extract_section(text, h, ANY_HEADER)
+        if s.strip():
+            return s
+    return ""
 
 
 def distill(src: Path) -> dict | None:
     text = src.read_text(encoding="utf-8", errors="ignore")
-    rules = extract_section(text, RULE_HEADER, TRAP_HEADER)
+    rules = _first_section(text, RULE_HEADERS)
     if not rules.strip():
         return None
     title_m = META_TITLE.search(text)
     title = title_m.group(1).strip() if title_m else src.stem
-    traps = extract_section(text, TRAP_HEADER, None)
+    traps = _first_section(text, TRAP_HEADERS)
     return {"title": title, "source": src.relative_to(ROOT).as_posix(), "rules": rules, "traps": traps}
 
 
@@ -258,8 +297,16 @@ def self_test() -> int:
             "## 陷阱\n\n- 坑\n", encoding="utf-8")
         (t / "sources" / "b.md").write_text(
             "## 元信息\n\n## 别的章节\n\n没有规则段\n", encoding="utf-8")
+        # c.md：标题变体**在白名单内** → 应可蒸馏。
+        # 陷阱标题也带括号 + 后面还有无关章节 —— 用来验证段不越界。
         (t / "sources" / "c.md").write_text(
-            "## 元信息\n\n## 解法（可执行规则）\n\n1. 变体标题\n", encoding="utf-8")
+            "## 元信息\n\n- 标题：变体稿\n\n## 解法（可执行规则）\n\n1. 变体里的真规则\n\n"
+            "## 陷阱（它踩过的）\n\n- 坑\n\n## 后续无关章节\n\n不该被收进规则段\n",
+            encoding="utf-8")
+        # d.md：形近但**不在白名单** → 必须仍然不可蒸馏。
+        # 没有这条，就无法区分「白名单生效」和「改成了通配」——两者表现完全一样。
+        (t / "sources" / "d.md").write_text(
+            "## 元信息\n\n## 可执行规则（草案）\n\n1. 形近但未被认可\n", encoding="utf-8")
         return t
 
     def run(t: Path, fn, *a):
@@ -280,19 +327,28 @@ def self_test() -> int:
         idx = t / "drafts" / "index.json"
         MANUAL = {
             "sources/b.md": "无规则段的结构化笔记，走手工通道处理",
-            "sources/c.md": "标题变体「## 解法（可执行规则）」，管道正则只认精确标题",
+            "sources/d.md": "标题「## 可执行规则（草案）」形近但未纳入白名单，待人工裁决",
         }
         idx.write_text(json.dumps({"generated": [], "graduated": {}, "manual-channel": MANUAL},
                                   ensure_ascii=False, indent=2), encoding="utf-8")
 
-        # 1. 可蒸馏的正例被识别
+        # 1. 可蒸馏的正例被识别（a 精确标题 + c 白名单变体）
         r = run(t, scan, t / "drafts")
-        cases.append(("可蒸馏 1 份", len(r["distillable"]) == 1))
-        # 2. 无规则段 → 归入 skipped（不静默）
+        cases.append(("可蒸馏 2 份（含白名单变体）", len(r["distillable"]) == 2))
+        # 2. 无规则段 + 白名单外形近标题 → 归入 skipped（不静默）
         cases.append(("缺章节 → skipped", len(r["skipped"]) == 2))
-        # 3. 失败原因具体：形近标题被点出来
-        why = dict(r["skipped"]).get("sources/c.md", "")
-        cases.append(("形近标题被诊断出来", "解法（可执行规则）" in why))
+        # 3. 白名单变体被识别为可蒸馏
+        cases.append(("白名单变体被识别", "sources/c.md" in dict(r["distillable"])))
+        # 4. 白名单**外**的形近标题仍被排除（证明不是通配放宽）
+        skipped_map = dict(r["skipped"])
+        cases.append(("白名单外的形近标题仍被排除", "sources/d.md" in skipped_map))
+        # 5. 失败原因具体：把"不在白名单"讲清楚，不只说缺章节
+        cases.append(("失败原因点出白名单", "白名单" in skipped_map.get("sources/d.md", "")))
+        # 6. 段不越界：带括号的陷阱标题也要能终止规则段
+        c_rules = run(t, distill, t / "sources" / "c.md")["rules"]
+        cases.append(("规则段在下一个二级标题处截断", "不该被收进规则段" not in c_rules))
+        cases.append(("变体陷阱段被单独取出",
+                      "坑" in run(t, distill, t / "sources" / "c.md")["traps"]))
         # 4. 生成产物真的落盘
         run(t, cmd_generate, t / "drafts")
         cases.append(("产物落盘", (t / "drafts" / "测试标题一二三" / "SKILL.md").is_file()))
@@ -339,9 +395,8 @@ def self_test() -> int:
         data["manual-channel"] = {**MANUAL, "sources/幽灵.md": "这条素材根本不存在"}
         idx.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         cases.append(("登记了不存在的源被抓出", run(t, cmd_check, t / "drafts") != 0))
-        # 15. 放宽正则刷绿是被禁止的：形近标题仍不算可蒸馏
-        r = run(t, scan, t / "drafts")
-        cases.append(("形近标题不被偷偷算作可蒸馏", len(r["distillable"]) == 1))
+        # （原「形近标题不算可蒸馏」一条已删除：它把白名单内/外两种情况混在一句里断言，
+        #  白名单生效后必然失效。已拆成两条更精确的：白名单变体被识别 + 白名单外的仍被排除。）
         # 12. 空 index/无 index 不崩
         (t / "drafts" / "index.json").unlink()
         cases.append(("无 index.json 不崩", isinstance(run(t, scan, t / "drafts"), dict)))
