@@ -25,7 +25,7 @@ REPO = Path(__file__).resolve().parent.parent
 BASE = REPO / "sources" / "wechat"
 PENDING, DONE = BASE / "pending", BASE / "done"
 LOG = BASE / "poller.log"
-RSS_URL = "http://127.0.0.1:8001/rss"
+RSS_URL = "http://127.0.0.1:8001/feed/all.xml"  # 聚合 feed（含精选文章直链）；主 /rss 只有订阅号占位条目
 LINK_RE = re.compile(r"https?://mp\.weixin\.qq\.com/s/[A-Za-z0-9_\-]+")
 
 
