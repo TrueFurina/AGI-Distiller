@@ -112,7 +112,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 24 条判据，含变异自验
+# 1) 文档一致性 —— 25 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -122,13 +122,17 @@ python tools/check_skill_tags.py --self-test
 
 # 3) 计数同步 —— 数字必须等于工作区事实（改完 skill/笔记后先 --fix 再复核）
 python tools/sync_counts.py --self-test
-python tools/sync_counts.py
+python tools/wb_frontmatter_probe.py --self-test   # 字段取证器自验（本机无客户端 bundle 时加 --allow-missing）
 
 # 4) 判分器自检
 python golden/graders.py --self-test
 ```
 
-四条命令都退出 0 才提 PR。
+四条命令都退出 0 才提 PR（含 `--self-test` 子步骤）。
+
+> **本地全绿 ≠ CI 绿**：别人往同一仓库推的东西，是你本地没有的事实源。
+> 提 PR 前额外跑一次 `gh run list --limit 3`，看主干最近几次 run 是不是**真的成功** ——
+> 门禁能把红 CI 修绿，但它不会自己发现 CI 红。
 
 **数字不要手敲。** 加了一个 skill / 一篇笔记后，被机验强制的计数散落在
 README ×2 / HEARTBEAT / NEXT / CONTRIBUTING 里（实测每轮 16+ 处）。
@@ -144,6 +148,7 @@ README ×2 / HEARTBEAT / NEXT / CONTRIBUTING 里（实测每轮 16+ 处）。
 | `check_skill_tags.py` | 无（纯标准库） |
 | `sync_counts.py` | 无（纯标准库） |
 | `workbuddy_skills.py` | 无（纯标准库）—— 但只在**装了 WorkBuddy 的机器**上有意义，**不是 PR 门禁**；它的 `--self-test` 用临时 fixture，所以能进 CI |
+| `wb_frontmatter_probe.py` | 无（纯标准库）—— 只在**本机有 WorkBuddy 客户端 bundle** 时才能取证；无 bundle 时装作不知道（打印说明），不猜答案 |
 | `graders.py` | **需要 PyYAML** —— `pip install pyyaml` |
 
 `graders.py` 那一条要特别小心：**本机装了 PyYAML 不代表 CI 有**。
@@ -160,10 +165,10 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（24 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
+| `doc-consistency` | 文档与实际是否一致（25 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
 | `distill-pipeline` | 蒸馏管道：变异自验 + 体检（不可蒸馏是否登记、产物去向是否可核验：`tools/distill_skills.py`） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
-| `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录） |
+| `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录）+ 字段取证器的自验与降级（`tools/wb_frontmatter_probe.py`） |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |
 
@@ -171,10 +176,6 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 > 而 Claude Code（本仓唯一实测过的宿主）的 schema 写 `Comma-separated string or YAML list`。
 > **两份规范是冲突的**，本仓按已实测宿主用逗号，证据见 `sources/anthropic/skill-authoring-standard.md` §八。
 > 门禁会拦住反向改动。
-
-> 注意：**本机绿 ≠ CI 绿**。本机环境可能自带依赖而 CI 是裸的；
-> 反过来，workflow 里若调用了不存在的脚本或参数，也会一直是红的。
-> 加新检查时，把 workflow 里的命令**原样在本地跑一遍**。
 
 > **触发范围也由机器保证**：workflow 的 `paths` 由判据 **D20** 强制 ——
 > 凡被机验读到的文件，都必须落在触发范围内。它走「跑一遍全部判据、记录实际读了哪些文件」

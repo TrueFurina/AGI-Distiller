@@ -4,12 +4,15 @@ description: 验收清单自动输出 — 每次任务完成后按7项结构输�
 argument-hint: ["验收本次改动", "检查交付物", "输出验收清单", "checklist"]
 context: fork
 agent: Explore
-maxTurns: 15
-disallowedTools: Write, Edit
 allowed-tools: bash, read_file, grep, glob
 ---
 
 # 验收清单
+
+> **只读约定**：本 skill 只输出检查结果，不改任何文件。
+> 原先写在 frontmatter 的 `disallowedTools: Write, Edit` 已删除 ——
+> 本机客户端的 skill 解析器**不读取**这两个字段（取证见 `tools/wb_field_evidence.json`），
+> 留着只会制造"已经受限"的幻觉，而限制从未生效。约束改为写在正文里。
 
 > 隔离说明：验收是裁判工作，在只读 subagent 上下文执行（context: fork + Explore），不修改文件；bash 仅用于跑检查命令。裁判分离铁律的实现载体。
 

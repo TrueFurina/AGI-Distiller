@@ -1,0 +1,53 @@
+{
+  "bundle": "D:\\WorkBuddy\\resources\\app.asar.unpacked\\cli\\dist\\codebuddy-headless.js",
+  "bundle_bytes": 11938885,
+  "bundle_mtime_epoch": 1791105172.0,
+  "bundle_mtime": "2026-10-04T09:12:52Z",
+  "fetched_at": "2026-10-09T16:56:18Z",
+  "return_keys": [
+    "agent",
+    "agentCreated",
+    "allowedTools",
+    "baseDirectory",
+    "color",
+    "context",
+    "description",
+    "disableModelInvocation",
+    "displayName",
+    "id",
+    "instructions",
+    "location",
+    "model",
+    "name",
+    "skillId",
+    "skillVersion",
+    "source",
+    "userInvocable"
+  ],
+  "fields": {
+    "name": {
+      "read": true,
+      "as": "name"
+    },
+    "description": {
+      "read": true,
+      "as": "description"
+    },
+    "argument-hint": {
+      "read": false,
+      "as": "argumentHint"
+    },
+    "context": {
+      "read": true,
+      "as": "context"
+    },
+    "agent": {
+      "read": true,
+      "as": "agent"
+    },
+    "allowed-tools": {
+      "read": true,
+      "as": "allowedTools"
+    }
+  }
+}

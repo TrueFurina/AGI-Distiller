@@ -37,10 +37,17 @@ ROOT = Path(__file__).resolve().parent.parent
 # ──────────────────────────────────────────────────────────────
 
 
+GIT_KEY = "@git:"
+
+
 class RepoView:
-    def __init__(self, root: Path = ROOT, tamper: dict | None = None):
+    def __init__(self, root: Path = ROOT, tamper: dict | None = None,
+                 git_overrides: dict[str, str] | None = None):
         self.root = root
         self.tamper = dict(tamper or {})
+        # 覆写 `git <args>` 的输出。真值来自子进程，不放行 cargo-cult；
+        # 但没有它，凡依托 git 结果的断言都不可变异 —— 那就成了自称有效、实则无人考验的判据。
+        self.git_overrides = dict(git_overrides or {})
 
     def text(self, rel: str) -> str:
         if rel in self.tamper:
@@ -74,6 +81,9 @@ class RepoView:
         )
 
     def git(self, *args: str) -> str:
+        key = " ".join(args)
+        if key in self.git_overrides:
+            return self.git_overrides[key]
         try:
             r = subprocess.run(
                 ["git", *args], cwd=str(self.root), capture_output=True, text=True, timeout=30
@@ -230,14 +240,28 @@ def d6_ci_flag(v: RepoView):
     return True, f"CI 实际存在={has}，README 勾选状态一致"
 
 
-def d7_pycache_ignored(v: RepoView):
+def d7_generated_artifacts_ignored(v: RepoView):
+    """临时产物（编译结果 / 运行日志）既要在 .gitignore 里，也不能躺在索引里。
+
+    .gitignore 写一行是声明，索引里干不干净是事实 —— 两者会各自漂移：
+    写了忽略但 `git add -A` 顺手把既有日志带进来，从此每跑一次 pipeline 工作区就假脏一次。
+    """
     gi = v.text(".gitignore")
+    problems = []
     if "__pycache__/" not in gi:
-        return False, ".gitignore 未忽略 __pycache__/（编译产物会再次误入仓）"
-    tracked = [x for x in v.git("ls-files").splitlines() if x.endswith(".pyc")]
-    if tracked:
-        return False, f"仍有 {len(tracked)} 个 .pyc 被 git 跟踪 -> {tracked[:3]}"
-    return True, "__pycache__/ 已忽略，且索引里无 .pyc"
+        problems.append(".gitignore 未忽略 __pycache__/（编译产物会再次误入仓）")
+    if "*.log" not in gi:
+        problems.append(".gitignore 未忽略 *.log（运行日志会再次误入仓）")
+    tracked = v.git("ls-files").splitlines()
+    pyc = [x for x in tracked if x.endswith(".pyc")]
+    logs = [x for x in tracked if x.endswith(".log")]
+    if pyc:
+        problems.append(f"仍有 {len(pyc)} 个 .pyc 被 git 跟踪 -> {pyc[:3]}")
+    if logs:
+        problems.append(f"仍有 {len(logs)} 个运行日志被 git 跟踪 -> {logs[:3]}")
+    if problems:
+        return False, "；".join(problems)
+    return True, "__pycache__/ 与 *.log 均已忽略，且索引里无 .pyc / .log"
 
 
 PHANTOM = "agi-distiller/agi-distiller"
@@ -1084,6 +1108,51 @@ def d24_ci_job_count(v: RepoView):
     return True, f"CI job 数一致（{len(jobs)}: {', '.join(jobs)}）"
 
 
+WB_CHANNEL_CLAIM = re.compile(r"\|\s*(\d+)\s*/\s*(\d+)\s*在位")
+
+
+def _wb_channel_facts() -> tuple[int, int]:
+    """(一致数, 本仓 skill 总数)。
+
+    事实侧**故意不走 RepoView**：它由工具在真实本机目录上跑出来，文档改不动它。
+    若把它也纳入 tamper，"文档改成什么都对" —— 那就验了个寂寞。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_wb_state_for_check", ROOT / WB_TOOL)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    state = mod.scan_state(mod.DEFAULT_TARGET)
+    return sum(1 for s in state.values() if s["status"] == "ok"), len(state)
+
+
+def d25_workbuddy_channel_count(v: RepoView):
+    """NEXT.md 现状锚点写的「N/M 在位」== 本机 WorkBuddy 通道实测。
+
+    与 D24 同源：那张表自称「由机验强制，不可手写漂移」，但工作区新增第 22 个 skill 后
+    这一行仍写着 21/21 —— 24 条判据没有一条在看它。
+    锚点表是给人最快的现状假象，所以它的漂移比别处更贵。
+    """
+    v.text(WB_TOOL)  # 执行取证：让 D20 知道这个文件在监视范围内
+    ok, total = _wb_channel_facts()
+    nxt = v.text("NEXT.md")
+    i = nxt.find("## 现状锚点")
+    if i < 0:
+        return False, "NEXT.md: 找不到「现状锚点」节"
+    j = nxt.find("\n## ", i + 1)
+    anchor = nxt[i: j if j > 0 else len(nxt)]
+    ms = WB_CHANNEL_CLAIM.findall(anchor)
+    if not ms:
+        return False, "NEXT.md 现状锚点: 找不到 WorkBuddy 通道数的声称"
+    problems = [
+        f"声称 {a}/{b} 在位 != 实测 {ok}/{total}"
+        for a, b in ms if (int(a), int(b)) != (ok, total)
+    ]
+    if problems:
+        return False, "; ".join(problems)
+    return True, f"WorkBuddy 通道数一致（{ok}/{total} 在位）"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -1091,7 +1160,7 @@ CHECKS = [
     ("D4", "ATOMCODE 节数口径", d4_atomcode_sections),
     ("D5", "sources 落盘笔记数口径", d5_sources_count),
     ("D6", "CI 状态勾选 vs 工作流实际", d6_ci_flag),
-    ("D7", "编译产物不进仓", d7_pycache_ignored),
+    ("D7", "临时产物（编译结果/运行日志）不进仓", d7_generated_artifacts_ignored),
     ("D8", "仓库 URL 无幽灵路径", d8_repo_url),
     ("D9", "HEARTBEAT 数字可核验", d9_heartbeat_numbers),
     ("D10", "版本号中英/配置对等", d10_version_parity),
@@ -1109,6 +1178,7 @@ CHECKS = [
     ("D22", "手工通道登记 == 实测不可蒸馏集合", d22_manual_channel_registry),
     ("D23", "草稿产物去向必须可核验", d23_draft_graduation_vouched),
     ("D24", "CI job 数声称 == workflow 实际", d24_ci_job_count),
+    ("D25", "现状锚点 WorkBuddy 通道数 == 实测", d25_workbuddy_channel_count),
 ]
 
 
@@ -1196,6 +1266,17 @@ def _mut_d23(v) -> dict[str, str]:
     return _mut_draft_index(v, sabotage)
 
 
+def _mut_d7(v) -> dict[str, str]:
+    """D7 有两条分支。<Appearance ignores>写漏能被文件篡改打破，「索引脏了」这条不看文件内容，
+    必须连 `git ls-files` 的输出一起篡改才打得到 —— 否则它是一条自称有效、实则无人考验的断言。"""
+    return {
+        ".gitignore": v.text(".gitignore")
+        .replace("__pycache__/", "__never_ignore__/")
+        .replace("*.log", "*.neverlog"),
+        GIT_KEY + "ls-files": "README.md\ngolden/__pycache__/x.pyc\nsources/wechat/poller.log",
+    }
+
+
 MUTATIONS: dict[str, callable] = {
     "D1": lambda v: {"README.md": _sub1(v.text("README.md"), "`workspace-isolation`", "`ghost-skill`")},
     "D2": lambda v: {"README.zh.md": _sub1(v.text("README.zh.md"), "`workspace-isolation`", "`ghost-skill`")},
@@ -1203,7 +1284,7 @@ MUTATIONS: dict[str, callable] = {
     "D4": lambda v: {"README.md": _sub1(v.text("README.md"), "(14 sections)", "(12 sections)")},
     "D5": lambda v: {"README.md": _mut_num(v.text("README.md"), r"\*\*(\d+) distilled source notes")},
     "D6": lambda v: {"README.md": _sub1(v.text("README.md"), "- [x] CI pipeline", "- [ ] CI pipeline")},
-    "D7": lambda v: {".gitignore": v.text(".gitignore").replace("__pycache__/", "__never_ignore__/")},
+    "D7": _mut_d7,
     "D8": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), "TrueFurina/AGI-Distiller", PHANTOM)},
     "D9": lambda v: {"HEARTBEAT.md": _mut_num(v.text("HEARTBEAT.md"), r"\| 生产级 skill \| (\d+) \|")},
     "D10": lambda v: {".claude-plugin/plugin.json": _sub1(v.text(".claude-plugin/plugin.json"), '"version": "0.1.0"', '"version": "9.9.9"')},
@@ -1252,6 +1333,8 @@ MUTATIONS: dict[str, callable] = {
     # 写成 "99 个 job" 而不是改 workflow —— 判据的职责是让**文档追上事实**，
     # 把 workflow 改掉等于反向坐实错误声称。
     "D24": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"(\d+)\s*个\s*job", offset=90)},
+    # 只挪分子：声称的"在位数"比实测少，正是这条判据要抓的漂移
+    "D25": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"\| (\d+)/\d+\s*在位")},
 }
 
 
@@ -1288,12 +1371,15 @@ def self_test() -> int:
             bad += 1
             continue
         try:
-            tamper = mut(base)
+            raw = mut(base)
         except Exception as e:
             print(f"  FAIL  [{cid}] 变异构造失败: {e}")
             bad += 1
             continue
-        ok, _ = fn(RepoView(tamper=tamper))
+        # 约定：`@git:<args>` 为保留键，用于覆写 `git <args>` 的输出，不落到文件篡改
+        tamper = {k: v for k, v in raw.items() if not k.startswith(GIT_KEY)}
+        git_overrides = {k[len(GIT_KEY):]: v for k, v in raw.items() if k.startswith(GIT_KEY)}
+        ok, _ = fn(RepoView(tamper=tamper, git_overrides=git_overrides))
         if ok:
             print(f"  FAIL  [{cid}] 变异未被检出 —— 判据无效（{title}）")
             bad += 1

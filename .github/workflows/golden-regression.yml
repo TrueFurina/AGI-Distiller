@@ -96,6 +96,10 @@ jobs:
           python-version: '3.12'
       - name: WorkBuddy 通道同步器 —— 变异自验（临时 fixture，不碰真实目录）
         run: python tools/workbuddy_skills.py --self-test
+      - name: frontmatter 字段取证器 —— 变异自验 + 无 bundle 时的诚实降级
+        run: |
+          python tools/wb_frontmatter_probe.py --self-test
+          python tools/wb_frontmatter_probe.py --allow-missing
 
   distill-pipeline:
     runs-on: ubuntu-latest

@@ -4,14 +4,16 @@ description: 上线检查清单 — 发布前按8项逐条检查：改动范围�
 argument-hint: ["帮我做上线检查", "发布前检查", "准备上线", "部署检查"]
 context: fork
 agent: Explore
-maxTurns: 15
-disallowedTools: Bash, Write, Edit
 allowed-tools: bash, read_file, grep, glob
 ---
 
 # 上线检查清单
 
 > 隔离说明：本 skill 在只读 subagent 上下文执行（context: fork + Explore agent），只审查不改文件；检查结论回传主会话后由用户决策。
+>
+> 原先写在 frontmatter 的 `disallowedTools: Bash, Write, Edit` 与 `maxTurns: 15` 已删除 ——
+> 本机客户端的 skill 解析器**不读取**这两个字段（取证见 `tools/wb_field_evidence.json`），
+> 留着只会制造"已经受限"的幻觉，而限制从未生效。只读约束以本段为准。
 
 用户请求: $ARGUMENTS
 

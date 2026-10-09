@@ -160,6 +160,103 @@ def frontmatter_fields(path: Path) -> list[str]:
     ]
 
 
+EVIDENCE_FILE = REPO_ROOT / "tools" / "wb_field_evidence.json"
+
+
+def load_field_evidence() -> dict | None:
+    """客户端 frontmatter 字段取证结果（由 tools/wb_frontmatter_probe.py 产出）。
+
+    没有它时，普查只能说「无先例」——那是没见过，不等于不支持。有它就能给出结论。
+    客户端升级后 bundle 的 sha 会变，届时这张快照过期，重跑取证即可刷新。
+    """
+    try:
+        ev = json.loads(EVIDENCE_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(ev, dict):
+        return None
+    ev["stale"] = _evidence_staleness(ev)
+    return ev
+
+
+def _evidence_staleness(ev: dict) -> bool | None:
+    """这张证据快照是不是已经跟着客户端升级过期了。None = 本机没那个 bundle，无从判断。
+
+    委托给取证器本身实现 —— 判据和取值用同一份代码，不然两边会各自漂移。
+    """
+    import importlib.util
+
+    probe = REPO_ROOT / "tools" / "wb_frontmatter_probe.py"
+    if not probe.is_file():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("_wb_probe_for_check", probe)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.evidence_is_stale(ev)
+    except Exception:
+        return None
+
+
+def fields_not_read_but_used(ev: dict | None) -> dict[str, int]:
+    """本仓在写、但取证显示 skill 解析器不读的字段 → {字段: 用到的 skill 数}。
+
+    与 outliers 是两件事：outliers 问的是"别人用过吗"（ popularity ），
+    这里问的是"客户端读它吗"（ effectiveness ）。有先例不代表生效。
+    """
+    if not ev:
+        return {}
+    fields = ev.get("fields", {})
+    used: dict[str, int] = {}
+    for sdir in src_skills().values():
+        for k in frontmatter_fields(sdir / "SKILL.md"):
+            if k in fields and not fields[k].get("read"):
+                used[k] = used.get(k, 0) + 1
+    return used
+
+
+def _report_outliers(outliers: dict[str, list[str]], ev: dict | None) -> None:
+    """把「无先例」字段按证据分成三档，不再一律标成"未经验证"。
+
+    三档：已确证被读取 / 已确证写了不生效 / 无证据。混成一档是用别人的沉默当答案，
+    也让真正要删的死字段和只在本仓出现的合法字段享受同等待遇。
+    """
+    fields = (ev or {}).get("fields", {})
+    unread, verified, unknown = [], [], []
+    for k, names in sorted(outliers.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        shown = ", ".join(names[:3]) + ("…" if len(names) > 3 else "")
+        line = f"    - {k:20} 被 {len(names)} 个 skill 用到（{shown}）"
+        if k not in fields:
+            unknown.append(line)
+        elif fields[k]["read"]:
+            verified.append(line)
+        else:
+            unread.append(line)
+
+    print("  以下字段在**已装 skill 里没有任何先例**：")
+    basis = ""
+    if ev:
+        basis = (f"依据 {ev.get('fetched_at', '?')} 对 "
+                 f"{ev.get('bundle_bytes', 0):,} 字节 bundle 的取证")
+    if verified:
+        print("    ✅ 客户端解析确实读取了它们（只是别人没用过）：")
+        print("\n".join(verified))
+    if unread:
+        print("    ❌ 写了不生效 —— 客户端的 skill 解析器不读取这些字段：")
+        print("\n".join(unread))
+        print("       （搬运清单见 tools/wb_field_evidence.json；删不删由人裁决，工具不代劳）")
+    if unknown:
+        print("    ⚠️  无取证数据（字段不在本次快照内 / 未跑取证），是否支持未知：")
+        print("\n".join(unknown))
+    if basis:
+        if ev.get("stale") is None:
+            basis += "（本机无该客户端 bundle，无法复核是否过期）"
+        elif ev["stale"]:
+            basis = "⚠️ 证据已过期：客户端 bundle 变了 —— " + basis
+        print(f"       {basis}；重取证："
+              f"`python tools/wb_frontmatter_probe.py --write tools/wb_field_evidence.json`")
+
+
 def census(target: Path) -> tuple[dict[str, int], dict[str, list[str]]]:
     """目标目录下**其他** skill 的 frontmatter 字段普查 + 本仓越界字段。
 
@@ -217,15 +314,20 @@ def cmd_check(target: Path, verbose: bool = True) -> int:
         if hit is not None:
             print(f"        已登记为 userSettings 的本仓 skill：{hit or '（无）'}")
         counts, outliers = census(target)
+        ev = load_field_evidence()
         print(f"\n  兼容性普查：已装 skill frontmatter 字段 {len(counts)} 种")
         if outliers:
-            print("  以下字段在**已装 skill 里没有任何先例**，客户端是否识别未经验证：")
-            for k, names in sorted(outliers.items(), key=lambda kv: -len(kv[1])):
-                shown = ", ".join(names[:3]) + ("…" if len(names) > 3 else "")
-                print(f"    - {k:20} 被 {len(names)} 个 skill 用到（{shown}）")
+            _report_outliers(outliers, ev)
         else:
             print("  无越界字段：本仓用到的字段在已装 skill 里均有先例")
-        print("\n  结论：文件级一致" + ("（无漂移）" if not (stale or missing) else "（存在漂移，跑 --apply 回灌）"))
+        dead = fields_not_read_but_used(ev)
+        if dead:
+            print("  ⚠️  取证显示 skill 解析器不读取、但本仓仍在写的字段：")
+            for k, n in sorted(dead.items(), key=lambda kv: -kv[1]):
+                print(f"    - {k:20} {n} 个 skill 在写")
+            print("       注：`argumentHint` 在 **slash command** 路径被读取；skill 是否另走该路径未取证，")
+            print("       删之前先确认场景 —— 工具只负责把事实摆出来，不动别人的文件。")
+    print("\n  结论：文件级一致" + ("（无漂移）" if not (stale or missing) else "（存在漂移，跑 --apply 回灌）"))
 
     return 0 if not (stale or missing) else 1
 
@@ -384,6 +486,47 @@ def cmd_self_test() -> int:
             cases.append(("本仓自身不计入基线：装上后仍报越界", "context" in outliers))
         finally:
             SRC_DIR = saved_src
+
+    # 取证驱动的字段结论：三档输出必须能被证据文件推翻。
+    # 没有它时 census 只会说"无先例"（popularity），有它才谈得上"是否生效"（effectiveness）。
+    with tempfile.TemporaryDirectory() as td:
+        ev_path = Path(td) / "wb_field_evidence.json"
+        ev_path.write_text(json.dumps({
+            "fetched_at": "2026-01-01T00:00:00Z",
+            "bundle_sha256": "deadbeef",
+            "fields": {
+                "context": {"read": True, "as": "context"},
+                "maxTurns": {"read": False, "as": "maxTurns"},
+                "argument-hint": {"read": False, "as": "argumentHint"},
+            },
+        }, ensure_ascii=False), encoding="utf-8")
+        saved_ev = EVIDENCE_FILE
+        try:
+            globals()["EVIDENCE_FILE"] = ev_path
+            cases.append(("有证据：能读到 bundle 标识",
+                          (load_field_evidence() or {}).get("bundle_sha256") == "deadbeef"))
+            dead_now = fields_not_read_but_used(load_field_evidence())
+            cases.append(("有证据：不被读取且本仓在写的字段被点名", "argument-hint" in dead_now))
+            cases.append(("有证据：已被读取的字段不算死字段", "context" not in dead_now))
+            # 变异：把该字段的 read 翻成 true → 必须不再被点名
+            flipped = json.loads(ev_path.read_text(encoding="utf-8"))
+            flipped["fields"]["argument-hint"]["read"] = True
+            ev_path.write_text(json.dumps(flipped, ensure_ascii=False), encoding="utf-8")
+            cases.append(("证据翻转 read 后结论跟着变",
+                          "argument-hint" not in fields_not_read_but_used(load_field_evidence())))
+            # 变异 2：本仓没在写的字段不得被点名（人口和情感 winner 又👍 两码事）
+            cases.append(("本仓未在写的字段不进提示",
+                          "maxTurns" not in fields_not_read_but_used(load_field_evidence())))
+        finally:
+            globals()["EVIDENCE_FILE"] = saved_ev
+        # 证据缺失（别人机器上没跑过取证）→ 不得假装知道，也不得崩
+        try:
+            globals()["EVIDENCE_FILE"] = Path(td) / "no-such-evidence.json"
+            cases.append(("证据缺失：不崩且不给结论",
+                          load_field_evidence() is None
+                          and fields_not_read_but_used(None) == {}))
+        finally:
+            globals()["EVIDENCE_FILE"] = saved_ev
 
     print("== 自我变异验证（临时 fixture，未触碰真实目录）")
     bad = 0

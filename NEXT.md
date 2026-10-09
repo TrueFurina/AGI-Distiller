@@ -16,7 +16,7 @@
 | ATOMCODE 规则 | 14 节 |
 | 落盘蒸馏笔记 | 12（`sources/**/*.md`） |
 | CI | `.github/workflows/golden-regression.yml` — 6 个 job（doc-consistency / distill-pipeline / skill-tags / workbuddy-sync / graders-smoke / mock-regression） |
-| WorkBuddy 通道 | 21/21 在位（`python tools/workbuddy_skills.py --check`） |
+| WorkBuddy 通道 | 22/22 在位（`python tools/workbuddy_skills.py --check`；数字由判据 D25 盯着，不可手写） |
 | 版本 | `0.1.0`（未打 tag） |
 
 ---
@@ -87,7 +87,13 @@
 | `name` == 目录名 | 必须 | 19/19 一致 | ✅ |
 | `description` ≤ 1024 | 是 | 最长 148 字符 | ✅ |
 | `SKILL.md` ≤ 500 行 | 建议 | 最长 185 行 | ✅ |
-| `allowed-tools` 分隔符 | 空格 | **19/19 用逗号** | ⚠️ 存量偏差，**未批量改**（属"顺手重构"，且该字段为实验性，批量改前需先实测解析器） |
+| `allowed-tools` 分隔符 | ~~空格~~ | **19/19 用逗号** | ⚠️ ~~存量偏差~~ **已于 2026-10-10 翻案** —— 见下方取证 |
+
+> **2026-10-10 翻案（原判是错的）**：当时把「逗号」记成待改的存量偏差，依据是开放标准写的"空格"。
+> 但本机客户端 `parseSkillFile` 的实际实现 —— `MarkdownUtils.parseListField()` →
+> `splitByCommaRespectingBraces()` —— **就是按逗号切**（也接受 YAML 数组）。
+> 也就是说：照着"标准条文"去改才是自找麻烦，实现的行为才是真正的行为规范。
+> 教训归档进 `doc-fact-consistency-gate`：规范条文与实现对不上时，**以跑的实现为准**。
 
 > 局限：本轮只证明"链能跑通一次"。**跑通一次不算证据**——下次换一个来源再走一遍，
 > 若仍要人工补同样几处数字，说明缺的不是 skill，是**自动化**（Phase 2 的 `Automated distillation pipeline`）。
@@ -268,12 +274,34 @@ README 已就地标注"该记录早于当前计数、未复跑"；同时**补上
    `\r\r\n`（那是内容差异，不是换行差异），于是"归一化失效"是个**假警报**；
    改成显式写成 LF 才是真用例。变异自验的价值恰恰在此 —— **它先抓出了写变异的人**。
 
-### 仍未闭环（如实标出，不当已实现）
+### 未闭环（2026-10-10 已用客户端源码取证清算）
 
-- **WorkBuddy 是否识别 `context` / `agent` / `maxTurns` / `disallowedTools`**：这 4 个字段在
-  其余 80+ 个已装 skill 里**零先例**。工具会一直把它列为"无先例"，但要证伪只能**重启客户端**后看 ——
-  同步器只证明**文件级**一致，不代证客户端加载。
-- 因此 README 的 WorkBuddy 行标 ✅ 时，口径已写明"实测的是**登记与字节一致**，不是加载语义"。
+结论不再建立在"没人用过"上，而是**读了真正加载 skill 的那段代码**
+（`D:\WorkBuddy\resources\app.asar.unpacked\cli\dist\codebuddy-headless.js` 的 `parseSkillFile`）：
+
+| 字段 | 是否被解析器搬运 | 下游是否真用 | 处置 |
+|---|---|---|---|
+| `context` | ✅ | ✅ `"fork"===context` → `executeSkillInForkContext`（分离会话执行） | 保留 |
+| `agent` | ✅ | ✅ `L.agent \|\| GENERAL_PURPOSE` 作为 `subagent_type` 传给 fork 任务 | 保留 |
+| `model` | ✅ | ✅ `resolveConfiguredModelOrFallback(L.model, ...)` | 保留 |
+| `maxTurns` | ❌ | — | **已删**（2 个 skill 曾写） |
+| `disallowedTools` | ❌ | — | **已删**（2 个 skill 曾写） |
+
+删这两个字段的理由不是"看起来多余"，而是它们属于**虚假安全感**：
+写着"禁用 Write/Edit""限制 15 轮"，客户端一个都没读，约束从未生效；
+读的人（包括 AI）却以为受限。这比坦承没有约束更坏。
+约束改为写进正文（"只读约定"），意图保留、假约束移除。
+
+取证过程可复现：`python tools/wb_frontmatter_probe.py`（见 P0.10）。
+证据快照随 bundle 的 sha256 一起落盘，客户端升级后重跑即可刷新 ——
+**结论绑定的是那份具体的二进制，不是一句"我查过了"**。
+
+### 待你裁决（工具已点名，未擅自改）
+
+- **`argument-hint`**：19/22 个 skill 在写，但 skill 解析器**不读取**它（`parseSkillFile` 返回体无此键）。
+  它与上面两个不同：`argumentHint` 在 **slash command** 解析路径确实被读取，
+  而 skill 是否另走 command 路径**没有取证**。所以工具只报警不动手。
+  要删要留，等你拍板 —— 我没有替你决定。
 
 ---
 
@@ -328,6 +356,53 @@ README 已就地标注"该记录早于当前计数、未复跑"；同时**补上
   与其余草稿不同，它没有独立的落盘承接物 —— 登记理由是历史评审结论，不是本轮重新论证的。
 
 ---
+
+## P0.9 · CI 红了三天没人管 —— 以及没人管的免疫缺口 ✅ 本轮完成（2026-10-10）
+
+前一个 Commit 之前，`golden-regression` 连续 **3 个 run 失败**（`37813162719` → `37814047192` →
+`37820132996`），最后红着静置约 22 小时。起因不是深奥故障：**别的会话推了微信蒸馏资产
+（`skills/wechat-distill` + `sources/wechat/`），没走这个仓库自己的同步纪律。**
+
+| 症状 | 是哪个判据抓到的 |
+|---|---|
+| README 中英 skill 表漏列 `wechat-distill` | D1 / D2 |
+| skills `21→22`、notes `10→12`、来源分解 wechat `2→4`，共 21 处数字过期 | D5 / D9 + `sync_counts` |
+| `sources/wechat/{PIPELINE,mp-candidates}.md` 不可蒸馏且未登记（会被静默吞掉） | D22 |
+| `sources/comment-distillery-distilled.md` 的登记已失效（上轮放宽括号标题后它可蒸馏了） | D22 |
+| `wechat-distill` 有 3 条规则没带溯源标记 | `check_skill_tags` |
+
+修复后 CI（`37957543793`）6/6 全绿。
+
+### 真正的缺口：本地全绿 ≠ CI 绿
+
+上一轮收尾时 CI 确实是绿的 —— 之后它变红了，而 24 条判据没有一条会叫。
+
+所以收尾动作从此多一步：`gh run list --limit 3` 复核最近几次 run，
+别只验自己那一推。（已写入 `doc-fact-consistency-gate` 核查清单）
+
+### 顺带：运行日志不再进仓
+
+`sources/wechat/{distill_loop,poller}.log` 原被 git 跟踪，每次跑抓取/蒸馏都制造假脏文件。
+已移出索引并加 `*.log` 到 `.gitignore` —— 且 D7 扩成盯两件事：既要有忽略声明，
+索引里也**不许躺着** `.pyc` / `.log`。只写一行 `.gitignore` 是声明，`git add -A` 会把它打回原形。
+
+## P0.10 · 字段支持不是靠猜的：客户端源码取证 ✅ 本轮完成（2026-10-10）
+
+P0.7 留下的包袱是四个 frontmatter 字段（`context` / `agent` / `maxTurns` / `disallowedTools`）
+被标为"无先例"。但**没见过 ≠ 不支持** —— 用别人的沉默当答案，是另一种形式的敷衍。
+P0.7 段落里的清算表格就是靠本轮的取证写成的。
+
+| 动作 | 验收证据 |
+|---|---|
+| 新增 `tools/wb_frontmatter_probe.py` | 去客户端 bundle 里读 `parseSkillFile` 的 return 对象，看它搬运了哪些字段；变异自验 **10/10** |
+| 落盘 `tools/wb_field_evidence.json` | 记 bundle 路径 + sha256 + 字节数 + 取证时间 —— 换了版本就认不出，防止拿过期结论当现状 |
+| `workbuddy_skills.py` 普查升级三档 | 「✅ 确实读取了」/「❌ 写了不生效」/「⚠️ 无取证数据」；新增"本仓在写但不生效"的独立提示；自验 **22/22** |
+| 删掉 2 个确证的死字段 | `maxTurns` / `disallowedTools`（详见 P0.7）——理由写在那里：虚假安全感比没约束更坏 |
+
+自己造的伪影（当场修掉）：第一版用正则贪心取 return 顶层 key，
+把 `meta:{allowedTools:'no'}` 这种**嵌套对象里的同名字段**也算成"被读取"——
+那种误报比漏报更坏，它会给一个死字段发通行证。改为按括号深度只收 depth==1 的 key，
+并补了回归用例。`--self-test` 正是先抓出了写它的人。
 
 ## 停止条件
 
