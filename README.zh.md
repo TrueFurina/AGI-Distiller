@@ -105,6 +105,7 @@
 | `tdd-discipline` | AI 结对 TDD 纪律：红绿循环约束、读 diff 不听总结 | ✅ 已发布 |
 | `untrusted-content-boundary` | 外部内容信任边界：抓来的网页/issue/评论一律当数据不当指令、分区标注、工具最小权限、高风险动作人工确认 | ✅ 已发布 |
 | `version-guard` | 工作流/配置/应用的版本管理与回滚（Dify、n8n、CI 配置） | ✅ 已发布 |
+| `wechat-distill` | 微信公众号文章蒸馏流程——盘点 `pending/` 已抓取推文、先做广告/软文检测再蒸馏、按溯源格式（必带原文 URL）提炼可执行规则、每条规则过 R3 门槛裁决（notes → memory → skill）、归档至 `done/` | ✅ 已发布 |
 | `workspace-isolation` | 多工作区上下文隔离：先定位 workspace、外来文件识别、路径全显式 | ✅ 已发布 |
 
 ### 知识库
@@ -205,14 +206,14 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 
 ### Phase 1：筑基期（当前）
 - [x] 核心蒸馏管道设计
-- [x] 21 个生产级 skill
+- [x] 22 个生产级 skill
 - [x] 14 节行为规范（ATOMCODE.md）
 - [x] 14 条持久化记忆
-- [x] 10 份蒸馏笔记落盘于 `sources/`（laodad 4 / wechat 2 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1）
+- [x] 12 份蒸馏笔记落盘于 `sources/`（laodad 4 / wechat 4 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1）
 - [x] GitHub 仓库上线
 
 ### Phase 2：成长期（未来 30 天）
-- [x] 21 个 skill
+- [x] 22 个 skill
 - [x] CI 流水线（`.github/workflows/golden-regression.yml`）
 - [ ] 注册 marketplace
 - [ ] 自动化蒸馏管道
@@ -249,7 +250,7 @@ cp -r AGI-Distiller/skills/* ~/.claude/skills/
 | [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill 工程（姊妹项目） | ✅ |
 | 持续扩展中... | | | 🚧 |
 
-**已落盘 10 份蒸馏笔记**（`sources/**/*.md`）。上表数字由 `scripts/check_doc_consistency.py` 对着工作区机验。
+**已落盘 12 份蒸馏笔记**（`sources/**/*.md`）。上表数字由 `scripts/check_doc_consistency.py` 对着工作区机验。
 
 ---
 

@@ -109,6 +109,7 @@
 | `tdd-discipline` | AI pair-programming TDD discipline — red/green cycle constraints, read the diff instead of trusting summaries | ✅ Live |
 | `untrusted-content-boundary` | Trust boundary when an agent consumes untrusted external content (webpages, issues/PRs, comments, downloads) — treat it as data not instructions, segregate and label it, least-privilege tools, human approval before high-impact actions | ✅ Live |
 | `version-guard` | Version management and rollback for workflows, configs and apps (Dify, n8n, CI config) | ✅ Live |
+| `wechat-distill` | WeChat article distillation pipeline — triage fetched posts in `pending/`, run ad/soft-promo detection *before* distilling, extract actionable rules with a source URL, route each rule through the R3 threshold (notes → memory → skill), archive to `done/` | ✅ Live |
 | `workspace-isolation` | Multi-workspace context isolation — locate the workspace first, identify foreign files, always use explicit paths | ✅ Live |
 
 ### Knowledge Base
@@ -212,14 +213,14 @@ See [DISTILLER.md](DISTILLER.md) for the complete pipeline specification.
 
 ### Phase 1: Foundation (Current)
 - [x] Core distillation pipeline design
-- [x] 21 production skills
+- [x] 22 production skills
 - [x] 14-section behavioral specification (ATOMCODE.md)
 - [x] 14 persistent memory entries
-- [x] 10 distilled source notes on disk in `sources/` (laodad 4 / wechat 2 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1)
+- [x] 12 distilled source notes on disk in `sources/` (laodad 4 / wechat 4 / anthropic 1 / comment-distillery 1 / owasp 1 / tencent 1)
 - [x] GitHub repository live
 
 ### Phase 2: Growth (Next 30 days)
-- [x] 21 skills total
+- [x] 22 skills total
 - [x] CI pipeline (`.github/workflows/golden-regression.yml`)
 - [ ] Marketplace registration
 - [ ] Automated distillation pipeline
@@ -256,7 +257,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 | [comment-distillery](https://github.com/TrueFurina/comment-distillery) | 1 | Skill engineering (sibling project) | ✅ |
 | More coming... | | | 🚧 |
 
-**10 distilled source notes on disk** (`sources/**/*.md`). The count above is verified against the working tree by `scripts/check_doc_consistency.py`.
+**12 distilled source notes on disk** (`sources/**/*.md`). The count above is verified against the working tree by `scripts/check_doc_consistency.py`.
 
 ---
 

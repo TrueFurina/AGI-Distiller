@@ -40,7 +40,8 @@
   },
   "manual-channel": {
     "sources/anthropic/skill-authoring-standard.md": "编号式章节（〇/一/二…），非五段结构；已手工转化为 skills/skill-authoring-check",
-    "sources/comment-distillery-distilled.md": "标题变体「## 解法（可执行规则）」，管道正则只认精确「## 可执行规则」；姊妹项目回流稿件，走手工通道",
-    "sources/owasp/untrusted-content-boundary.md": "编号式章节（〇/一/二…），非五段结构；已手工转化为 skills/untrusted-content-boundary"
+    "sources/owasp/untrusted-content-boundary.md": "编号式章节（〇/一/二…），非五段结构；已手工转化为 skills/untrusted-content-boundary",
+    "sources/wechat/PIPELINE.md": "运维/架构文档（架构·成本实测·已知局限·运维命令），不是单篇素材；抓取管道的说明文档，无「标题+可执行规则」结构",
+    "sources/wechat/mp-candidates.md": "公众号候选池台账（P0/P1/P2 分层 + 已证死路线），属运营资产而非可蒸馏素材"
   }
 }

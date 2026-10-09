@@ -12,9 +12,9 @@
 | 项 | 值 |
 |---|---|
 | 仓库 | <https://github.com/TrueFurina/AGI-Distiller>（public） |
-| 生产级 skill | 21 |
+| 生产级 skill | 22 |
 | ATOMCODE 规则 | 14 节 |
-| 落盘蒸馏笔记 | 10（`sources/**/*.md`） |
+| 落盘蒸馏笔记 | 12（`sources/**/*.md`） |
 | CI | `.github/workflows/golden-regression.yml` — 6 个 job（doc-consistency / distill-pipeline / skill-tags / workbuddy-sync / graders-smoke / mock-regression） |
 | WorkBuddy 通道 | 21/21 在位（`python tools/workbuddy_skills.py --check`） |
 | 版本 | `0.1.0`（未打 tag） |
@@ -167,10 +167,10 @@ P0.4 留了一句预言：**"跑通一次不算证据"**。本轮就是回去验
 
 ## P2 · 长线（不设 deadline）
 
-- 多源蒸馏扩展（Medium / arXiv / 公众号 + 官方规范文档），使 `sources/` 的 10 份笔记继续增长
+- 多源蒸馏扩展（Medium / arXiv / 公众号 + 官方规范文档），使 `sources/` 的 12 份笔记继续增长
 - marketplace **注册已完成**（`.claude-plugin/marketplace.json` + 实装通过）；剩 skill Web 目录（README Phase 3 目标，**尚未启动**）
 - 社区发布（V2EX / 即刻 / 小红书 —— 从未执行）
-- skill 从 21 继续增长 —— **但必须有真实来源，不凑数**。凑数的 skill 会稀释「可溯源」这个唯一卖点。
+- skill 从 22 继续增长 —— **但必须有真实来源，不凑数**。凑数的 skill 会稀释「可溯源」这个唯一卖点。
 - 2026-10-01 起，新增 skill 前先读 `skills/skill-authoring-check/SKILL.md`：P0.4 新增的 1 处裸规则、
   1 处漏改数字，都是被它列的门禁当场抓出来的。**P0.5 又抓出它自己的一处未覆盖变体**：
   规则句**跨两行**时，标记写在第二行等于没写（检查器逐行匹配）——该 skill 已补上这条。

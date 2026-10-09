@@ -7,9 +7,9 @@
 
 | 指标 | 值 | 核验方式 |
 |---|---|---|
-| 生产级 skill | 21 | `ls -d skills/*/ \| wc -l` |
+| 生产级 skill | 22 | `ls -d skills/*/ \| wc -l` |
 | 行为规范节数（ATOMCODE.md） | 14 | `grep -c '^## ' rules/ATOMCODE.md` |
-| 落盘蒸馏笔记 | 10 | `find sources -name '*.md' \| wc -l` |
+| 落盘蒸馏笔记 | 12 | `find sources -name '*.md' \| wc -l` |
 | 远端同步 | 见 `git status -sb` | `git log origin/main..HEAD` |
 
 ## Health / 健康
