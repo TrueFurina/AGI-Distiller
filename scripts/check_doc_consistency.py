@@ -1110,6 +1110,9 @@ def d24_ci_job_count(v: RepoView):
 
 WB_CHANNEL_CLAIM = re.compile(r"\|\s*(\d+)\s*/\s*(\d+)\s*在位")
 
+WQ_TOOL = "tools/wechat_queue.py"
+WQ_CLAIM = re.compile(r"\|\s*(\d+)\s*篇全部可解释")
+
 
 def _wb_channel_facts() -> tuple[int | None, int]:
     """(本机在位个数 or None, 本仓 skill 总数)。
@@ -1168,6 +1171,58 @@ def d25_workbuddy_channel_count(v: RepoView):
     return True, f"WorkBuddy 通道数一致（{installed}/{total} 在位）"
 
 
+def _wechat_queue_facts() -> tuple[list[str], int, bool]:
+    """(不可解释项, done/ 篇数, 索引是否可读)。
+
+    事实侧**故意不走 RepoView**：它由工具在真实目录与本机索引上跑出来，文档改不动它。
+    """
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("_wq_for_check", ROOT / WQ_TOOL)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    r = mod.scan()
+    return mod.collect_problems(r), len(r["done"]), r["index"] is not None
+
+
+def d26_wechat_queue_explainable(v: RepoView):
+    """微信队列每篇的去向都可解释 —— `wechat-distill` skill 自称的 G1/G4 门禁。
+
+    `skills/wechat-distill/SKILL.md` 的质量门表标了 `[实测]`，其中
+    G4 =「done/ 与 notes 索引一致」。实测那一栏时：done/ 6 篇、索引 4 条，
+    差的 2 篇倒没丢 —— 裁决写在 `notes/wechat-drafts/*.draft.md` 的 `reviewed:` 里，
+    **只是没有任何东西负责汇总**。
+
+    所以真正的缺口不是"已经发生的错"，而是：下次有人归档一篇、既没复核也没入索引，
+    `done/` 的文件名和 `status: ok` 都不会有异常，而 poller 的去重已经把它当处理完的 ——
+    那篇会永远停在那儿。
+
+    判据两档：
+      - 声称的 done/ 篇数 == 实测（这一档能被文档变异打破，见 _mut_d26）
+      - 「无不可解释项」由工具执行产出，**不在文档变异的射程内** ——
+        它的背书是 `tools/wechat_queue.py --self-test` 的 27 条用例（四态 + AD + G1 全打过）。
+        不假装这条也验过。
+    """
+    v.text(WQ_TOOL)  # 执行取证：让 D20 知道这个文件在监视范围内
+    problems, n_done, idx_ok = _wechat_queue_facts()
+    nxt = v.text("NEXT.md")
+    i = nxt.find("## 现状锚点")
+    if i < 0:
+        return False, "NEXT.md: 找不到「现状锚点」节"
+    j = nxt.find("\n## ", i + 1)
+    anchor = nxt[i: j if j > 0 else len(nxt)]
+    ms = WQ_CLAIM.findall(anchor)
+    if not ms:
+        return False, "NEXT.md 现状锚点: 找不到微信队列的声称"
+
+    bad = [f"声称 {m} 篇 != 实测 done/ {n_done} 篇" for m in ms if int(m) != n_done]
+    bad += problems
+    if bad:
+        return False, "; ".join(bad)
+    note = "" if idx_ok else "（入索引情况未核验：本机无该索引）"
+    return True, f"微信队列 {n_done} 篇全部可解释{note}"
+
+
 CHECKS = [
     ("D1", "README.md skill 表 == skills/ 目录", d1_skill_table_en),
     ("D2", "README.zh.md skill 表 == skills/ 目录", d2_skill_table_zh),
@@ -1194,6 +1249,7 @@ CHECKS = [
     ("D23", "草稿产物去向必须可核验", d23_draft_graduation_vouched),
     ("D24", "CI job 数声称 == workflow 实际", d24_ci_job_count),
     ("D25", "现状锚点 WorkBuddy 通道数 == 实测", d25_workbuddy_channel_count),
+    ("D26", "微信队列每篇去向可解释（G1/G4）", d26_wechat_queue_explainable),
 ]
 
 
@@ -1367,6 +1423,9 @@ MUTATIONS: dict[str, callable] = {
     "D24": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"(\d+)\s*个\s*job", offset=90)},
     # 只挪分子：声称的"在位数"比实测少，正是这条判据要抓的漂移
     "D25": _mut_d25,
+    # 只打「篇数」这档。「无不可解释项」是执行产出，文档变异够不着，
+    # 由 tools/wechat_queue.py --self-test 的 27 条用例背书 —— 不在这里假装验过。
+    "D26": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"\|\s*(\d+)\s*篇全部可解释")},
 }
 
 

@@ -112,7 +112,7 @@ PR 描述里要写：解决什么痛点、来自哪篇文章/哪次实战、不�
 ## 四、本地自检（提 PR 前必须全绿）
 
 ```bash
-# 1) 文档一致性 —— 25 条判据，含变异自验
+# 1) 文档一致性 —— 26 条判据，含变异自验
 python scripts/check_doc_consistency.py
 python scripts/check_doc_consistency.py --self-test
 
@@ -122,13 +122,22 @@ python tools/check_skill_tags.py --self-test
 
 # 3) 计数同步 —— 数字必须等于工作区事实（改完 skill/笔记后先 --fix 再复核）
 python tools/sync_counts.py --self-test
-python tools/wb_frontmatter_probe.py --self-test   # 字段取证器自验（本机无客户端 bundle 时加 --allow-missing）
 
-# 4) 判分器自检
+# 4) 字段取证器自验（本机无客户端 bundle 时加 --allow-missing）
+python tools/wb_frontmatter_probe.py --self-test
+
+# 5) 微信队列 —— 每篇抓到的文章必须有下落（入索引 / 草稿裁决 / status: AD）
+python tools/wechat_queue.py --self-test
+python tools/wechat_queue.py --check
+
+# 6) 判分器自检（需 PyYAML）
 python golden/graders.py --self-test
 ```
 
-四条命令都退出 0 才提 PR（含 `--self-test` 子步骤）。
+六条都退出 0 才提 PR（含 `--self-test` 子步骤）。
+
+> `wechat_queue.py --check` 在没有蒸馏索引的机器上会显示"入索引情况未核验"并照样退出 0 ——
+> 那是**如实降级**，不是假绿：查不到就说查不到，不许当成"都没入索引"。
 
 > **本地全绿 ≠ CI 绿**：别人往同一仓库推的东西，是你本地没有的事实源。
 > 提 PR 前额外跑一次 `gh run list --limit 3`，看主干最近几次 run 是不是**真的成功** ——
@@ -165,8 +174,8 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 | job | 作用 |
 |---|---|
-| `doc-consistency` | 文档与实际是否一致（25 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
-| `distill-pipeline` | 蒸馏管道：变异自验 + 体检（不可蒸馏是否登记、产物去向是否可核验：`tools/distill_skills.py`） |
+| `doc-consistency` | 文档与实际是否一致（26 条判据 + 计数同步机验：`tools/sync_counts.py` + CI 触发范围覆盖：D20） |
+| `distill-pipeline` | 蒸馏管道：变异自验 + 体检（不可蒸馏是否登记、产物去向是否可核验：`tools/distill_skills.py`）；外加微信队列盘点（`tools/wechat_queue.py` —— 每篇抓到的文章必须有下落：入索引 / 草稿裁决 / `status: AD`） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
 | `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录）+ 字段取证器的自验与降级（`tools/wb_frontmatter_probe.py`） |
 | `sandbox-parity` | **专防「本机绿、CI 红」**：`AGIDISTILLER_SANDBOX=1` 假装这台机器没装 WorkBuddy、没有客户端 bundle，全套机验必须照样全绿。凡是依赖本机专属资源的判据会在这里当场现形 |

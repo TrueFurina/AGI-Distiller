@@ -40,10 +40,22 @@ python tools/fetch_wechat.py --status
 蒸馏完成后：`pending/<file>.txt` → `done/`（bash mv）；notes 里该篇标题后加 ✅。
 失败篇（captcha/error）留在 pending，下次重跑 `fetch_wechat.py` 重抓。
 
-## 质量门（G1-G4，[实测]）
-| 门 | 检查 |
-|----|------|
-| G1 | 每个蒸馏块有 [源:URL] |
-| G2 | 每条规则过 R3 裁决（notes/memory/skill 三选一，不悬空） |
-| G3 | AD 检测先于蒸馏执行 |
-| G4 | done/ 与 notes 索引一致（无蒸了没记、记了没移） |
+## 质量门（G1-G4）
+
+[R4·实测] 2026-10-10 复核：这四门此前标着 `[实测]`，但**没有任何东西在验**。
+实测当日 G4 就不成立（done/ 6 篇 vs 索引 4 条）——差的 2 篇倒没丢，
+裁决写在草稿的 `reviewed:` 里，只是没人汇总。现已把能机验的两门钉进判据 **D26**。
+
+| 门 | 检查 | 机验状态 |
+|----|------|----------|
+| G1 | 每个蒸馏块有 [源:URL] | ✅ `tools/wechat_queue.py --check`（索引可读时） |
+| G2 | 每条规则过 R3 裁决（notes/memory/skill 三选一，不悬空） | ⚠️ 无 —— 执行时自觉 |
+| G3 | AD 检测先于蒸馏执行 | ⚠️ 无 —— 执行时自觉 |
+| G4 | done/ 与 notes 索引一致（无蒸了没记、记了没移） | ✅ `tools/wechat_queue.py --check` |
+
+复跑：`python tools/wechat_queue.py --check`（判据 D26 在 CI 盯着；
+索引不在本机时该档如实显示"未核验"，不谎报成"都没入索引"）。
+
+[R3·实测] 归档不等于完成：一篇进了 `done/` 之后，poller 的去重就不会再抓它。
+所以「抓到了就必须有下落」—— 入索引、**或**在草稿里留下 `reviewed:` 裁决、**或**标 `status: AD`。
+三者都没有 = 悬空，工具会报警。

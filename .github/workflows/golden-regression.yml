@@ -118,6 +118,8 @@ jobs:
           python tools/workbuddy_skills.py --self-test
           python tools/wb_frontmatter_probe.py --self-test
           python tools/wb_frontmatter_probe.py --allow-missing
+          python tools/wechat_queue.py --self-test
+          python tools/wechat_queue.py --check
           python scripts/check_doc_consistency.py
 
   distill-pipeline:
@@ -131,6 +133,12 @@ jobs:
         run: python tools/distill_skills.py --self-test
       - name: 蒸馏管道 —— 体检（不可蒸馏是否已登记 / 产物去向是否可核验）
         run: python tools/distill_skills.py --check
+      # 微信队列：每篇「抓到了就必须有下落」。CI 上蒸馏索引不可读，
+      # 该档如实降为「未核验」，不谎报成「都没入索引」。
+      - name: 微信队列 —— 变异自验（四态 + AD + G1）
+        run: python tools/wechat_queue.py --self-test
+      - name: 微信队列 —— 体检（每篇去向可解释）
+        run: python tools/wechat_queue.py --check
 
   mock-regression:
     runs-on: ubuntu-latest
