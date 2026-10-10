@@ -1282,7 +1282,7 @@ def _mut_d23(v) -> dict[str, str]:
 
 
 def _mut_d7(v) -> dict[str, str]:
-    """D7 有两条分支。<Appearance ignores>写漏能被文件篡改打破，「索引脏了」这条不看文件内容，
+    """D7 有两条分支。「.gitignore 写漏」能被文件篡改打破，「索引脏了」这条不看文件内容，
     必须连 `git ls-files` 的输出一起篡改才打得到 —— 否则它是一条自称有效、实则无人考验的断言。"""
     return {
         ".gitignore": v.text(".gitignore")
@@ -1290,6 +1290,23 @@ def _mut_d7(v) -> dict[str, str]:
         .replace("*.log", "*.neverlog"),
         GIT_KEY + "ls-files": "README.md\ngolden/__pycache__/x.pyc\nsources/wechat/poller.log",
     }
+
+
+def _mut_d25(v) -> list[tuple]:
+    """D25 是**两档**判据，所以要有两条变异，各打一档。
+
+    单条变异只打分子时，在没有 WorkBuddy 通道的机器（CI）上那一档根本不参与判定 ——
+    变异会「检不出」，而检不出的判据不是有效判据。所以：
+      - 分母漂移：任何环境都打得到，是这条判据的**底线强度**
+      - 分子漂移：只在真有那台机器时才有意义；没有就如实 SKIP，不当成通过也不当成失败
+    """
+    nxt = v.text("NEXT.md")
+    installed, _total = _wb_channel_facts()
+    return [
+        ("分母：总数漂移", {"NEXT.md": _mut_num(nxt, r"\| \d+/(\d+)\s*在位")}, True),
+        ("分子：在位数漂移", {"NEXT.md": _mut_num(nxt, r"\| (\d+)/\d+\s*在位")},
+         installed is not None),
+    ]
 
 
 MUTATIONS: dict[str, callable] = {
@@ -1349,7 +1366,7 @@ MUTATIONS: dict[str, callable] = {
     # 把 workflow 改掉等于反向坐实错误声称。
     "D24": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"(\d+)\s*个\s*job", offset=90)},
     # 只挪分子：声称的"在位数"比实测少，正是这条判据要抓的漂移
-    "D25": lambda v: {"NEXT.md": _mut_num(v.text("NEXT.md"), r"\| (\d+)/\d+\s*在位")},
+    "D25": _mut_d25,
 }
 
 
@@ -1391,15 +1408,26 @@ def self_test() -> int:
             print(f"  FAIL  [{cid}] 变异构造失败: {e}")
             bad += 1
             continue
-        # 约定：`@git:<args>` 为保留键，用于覆写 `git <args>` 的输出，不落到文件篡改
-        tamper = {k: v for k, v in raw.items() if not k.startswith(GIT_KEY)}
-        git_overrides = {k[len(GIT_KEY):]: v for k, v in raw.items() if k.startswith(GIT_KEY)}
-        ok, _ = fn(RepoView(tamper=tamper, git_overrides=git_overrides))
-        if ok:
-            print(f"  FAIL  [{cid}] 变异未被检出 —— 判据无效（{title}）")
-            bad += 1
-        else:
-            print(f"  PASS  [{cid}] 变异已检出（{title}）")
+        # 一条判据可以有多条变异（多档判据每档都要能自证有效）。
+        # 元组形式：(变异名, tamper[, 本环境是否适用])；不适用的档直接 SKIP，
+        # 既不当通过也不当失败 —— 假装验过比没验更坏。
+        items = raw if isinstance(raw, list) else [(None, raw, True)]
+        for name, one, *rest in items:
+            applicable = rest[0] if rest else True
+            label = f"{title} · {name}" if name else title
+            if not applicable:
+                print(f"  SKIP  [{cid}] {label} —— 本环境无对应的事实源，未验证")
+                continue
+            # 约定：`@git:<args>` 为保留键，用于覆写 `git <args>` 的输出，不落到文件篡改
+            tamper = {k: v for k, v in one.items() if not k.startswith(GIT_KEY)}
+            git_overrides = {k[len(GIT_KEY):]: v
+                             for k, v in one.items() if k.startswith(GIT_KEY)}
+            ok, _ = fn(RepoView(tamper=tamper, git_overrides=git_overrides))
+            if ok:
+                print(f"  FAIL  [{cid}] 变异未被检出 —— 判据无效（{label}）")
+                bad += 1
+            else:
+                print(f"  PASS  [{cid}] 变异已检出（{label}）")
     if bad:
         print(f"\n变异验证失败：{bad}/{len(CHECKS)} 条判据无法自证有效性")
         return 1
