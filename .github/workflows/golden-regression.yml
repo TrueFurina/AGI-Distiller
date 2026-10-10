@@ -101,6 +101,25 @@ jobs:
           python tools/wb_frontmatter_probe.py --self-test
           python tools/wb_frontmatter_probe.py --allow-missing
 
+  # 专防「本机绿、CI 红」：假装这台机器什么都没装（没有 WorkBuddy 目录、没有客户端 bundle），
+  # 全套机验必须照样全绿。凡是依赖本机专属资源的判据，在这里会当场现形 ——
+  # 而不是等推送后才发现门禁在 CI 上是必然红的（必然红的门禁等于没有门禁，还掩盖真漂移）。
+  sandbox-parity:
+    runs-on: ubuntu-latest
+    env:
+      AGIDISTILLER_SANDBOX: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 无本机资源环境下的自验与机验
+        run: |
+          python tools/workbuddy_skills.py --self-test
+          python tools/wb_frontmatter_probe.py --self-test
+          python tools/wb_frontmatter_probe.py --allow-missing
+          python scripts/check_doc_consistency.py
+
   distill-pipeline:
     runs-on: ubuntu-latest
     steps:

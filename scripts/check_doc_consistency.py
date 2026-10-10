@@ -1111,30 +1111,40 @@ def d24_ci_job_count(v: RepoView):
 WB_CHANNEL_CLAIM = re.compile(r"\|\s*(\d+)\s*/\s*(\d+)\s*在位")
 
 
-def _wb_channel_facts() -> tuple[int, int]:
-    """(一致数, 本仓 skill 总数)。
+def _wb_channel_facts() -> tuple[int | None, int]:
+    """(本机在位个数 or None, 本仓 skill 总数)。
 
-    事实侧**故意不走 RepoView**：它由工具在真实本机目录上跑出来，文档改不动它。
-    若把它也纳入 tamper，"文档改成什么都对" —— 那就验了个寂寞。
+    总数在任何环境都能算 —— 它就是 SKILL.md 的目录数。
+    在位数要看 `~/.workbuddy/skills/`，**没有 WorkBuddy 的机器上这个概念不成立**（CI 就是）：
+    此时返回 None，而不是 0 —— 把"查不到"当成"0 个在位"会让判据在 CI 上必然红，
+    而一个必然红的门禁等于没有门禁，还会掩盖真漂移。
     """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("_wb_state_for_check", ROOT / WB_TOOL)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    total = len(mod.src_skills())
+    if not mod.channel_available():
+        return None, total
     state = mod.scan_state(mod.DEFAULT_TARGET)
-    return sum(1 for s in state.values() if s["status"] == "ok"), len(state)
+    return sum(1 for s in state.values() if s["status"] == "ok"), total
 
 
 def d25_workbuddy_channel_count(v: RepoView):
-    """NEXT.md 现状锚点写的「N/M 在位」== 本机 WorkBuddy 通道实测。
+    """NEXT.md 现状锚点写的「N/M 在位」与真相一致。
 
-    与 D24 同源：那张表自称「由机验强制，不可手写漂移」，但工作区新增第 22 个 skill 后
-    这一行仍写着 21/21 —— 24 条判据没有一条在看它。
-    锚点表是给人最快的现状假象，所以它的漂移比别处更贵。
+    与 D24 同源：那张表自称「由机验强制，不可手写漂移」，但第 22 个 skill 加进来时
+    这一行仍写着 21/21 —— 24 条判据没有一条在看它。锚点表给人的是最快的现状印象，
+    所以它的漂移比别处更贵。
+
+    两档核验，因为两档的可得性不同：
+      - 分母 M == 本仓 skill 数 —— 任何环境都能验（CI 也有 `skills/`）
+      - 分子 N == 本机实际在位 —— 只在装了 WorkBuddy 的机器上有意义；
+        没装就明确说"没验"，不把查不到当成 0
     """
     v.text(WB_TOOL)  # 执行取证：让 D20 知道这个文件在监视范围内
-    ok, total = _wb_channel_facts()
+    installed, total = _wb_channel_facts()
     nxt = v.text("NEXT.md")
     i = nxt.find("## 现状锚点")
     if i < 0:
@@ -1144,13 +1154,18 @@ def d25_workbuddy_channel_count(v: RepoView):
     ms = WB_CHANNEL_CLAIM.findall(anchor)
     if not ms:
         return False, "NEXT.md 现状锚点: 找不到 WorkBuddy 通道数的声称"
-    problems = [
-        f"声称 {a}/{b} 在位 != 实测 {ok}/{total}"
-        for a, b in ms if (int(a), int(b)) != (ok, total)
-    ]
+    problems = []
+    for a, b in ms:
+        if int(b) != total:
+            problems.append(f"声称总数 {b} != 本仓 skill 数 {total}")
+        if installed is not None and int(a) != installed:
+            problems.append(f"声称在位 {a} != 本机实测 {installed}")
     if problems:
         return False, "; ".join(problems)
-    return True, f"WorkBuddy 通道数一致（{ok}/{total} 在位）"
+    if installed is None:
+        return True, (f"总数一致（{total}）；本机无 WorkBuddy 通道，"
+                      f"在位数未核验（该数字只在真有那台机器上才有意义）")
+    return True, f"WorkBuddy 通道数一致（{installed}/{total} 在位）"
 
 
 CHECKS = [

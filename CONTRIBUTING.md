@@ -161,7 +161,7 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 
 ## 五、CI 会跑什么
 
-`.github/workflows/golden-regression.yml` 共 6 个 job：
+`.github/workflows/golden-regression.yml` 共 7 个 job：
 
 | job | 作用 |
 |---|---|
@@ -169,13 +169,19 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 | `distill-pipeline` | 蒸馏管道：变异自验 + 体检（不可蒸馏是否登记、产物去向是否可核验：`tools/distill_skills.py`） |
 | `skill-tags` | skill 有无裸规则 + frontmatter 结构（`name` == 目录名、`allowed-tools` 逗号分隔） |
 | `workbuddy-sync` | WorkBuddy 通道同步器的变异自验（`tools/workbuddy_skills.py --self-test`，临时 fixture，不碰真实目录）+ 字段取证器的自验与降级（`tools/wb_frontmatter_probe.py`） |
+| `sandbox-parity` | **专防「本机绿、CI 红」**：`AGIDISTILLER_SANDBOX=1` 假装这台机器没装 WorkBuddy、没有客户端 bundle，全套机验必须照样全绿。凡是依赖本机专属资源的判据会在这里当场现形 |
 | `graders-smoke` | 判分器冒烟 |
 | `mock-regression` | 判分逻辑回归 |
 
 > `allowed-tools` 的分隔符**别照着单一规范改**：agentskills.io 的开放标准写空格，
-> 而 Claude Code（本仓唯一实测过的宿主）的 schema 写 `Comma-separated string or YAML list`。
-> **两份规范是冲突的**，本仓按已实测宿主用逗号，证据见 `sources/anthropic/skill-authoring-standard.md` §八。
-> 门禁会拦住反向改动。
+> 而两个实测宿主的**实现**都按逗号切 ——
+> Claude Code 的 schema 写 `Comma-separated string or YAML list`；
+> WorkBuddy 客户端的 `parseSkillFile` → `MarkdownUtils.parseListField()` →
+> `splitByCommaRespectingBraces()`（源码级取证，`tools/wb_frontmatter_probe.py`）。
+> **规范条文与实现对不上时以防实现为准**，本仓用逗号。门禁会拦住反向改动。
+>
+> 这条口径本身曾被判错过一次：早期按开放标准把「逗号」记成待改的存量偏差，
+> 读实现后翻案 —— 详见 `NEXT.md` P0.4。
 
 > **触发范围也由机器保证**：workflow 的 `paths` 由判据 **D20** 强制 ——
 > 凡被机验读到的文件，都必须落在触发范围内。它走「跑一遍全部判据、记录实际读了哪些文件」
@@ -193,3 +199,13 @@ CI 已在 workflow 里显式 `pip install pyyaml`；如果你新加了依赖，
 - 数字不许手写——README / HEARTBEAT 里的数量都是从工作区数出来的，由机验盯着。
 
 这不是洁癖：**一个号称"什么平台都支持"却一个都没跑过的仓库，比只支持一个但真跑过的仓库更没用。**
+
+### 本机绿 ≠ CI 绿
+
+加检查时最容易漏的一点：**你机器上装了的东西，CI 上没有。**
+`sandbox-parity` job 用 `AGIDISTILLER_SANDBOX=1` 把本机专属资源（WorkBuddy 技能目录、
+客户端 bundle）全部假装不存在，再跑一遍全套机验。
+
+- 自验用例里**不许读真实本机路径** —— 要什么就自己造 fixture。依赖真实资源的用例在本机绿、CI 必然红。
+- 必然红的门禁**比没有门禁更糟**：它不仅没拦住任何东西，还会把真失败一起淹没在红里。
+- 「查不到」要如实说「未核验」，不许当成 0（D25 与取证器的过期检测都是两档：`None` = 无从判断）。

@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -55,7 +56,25 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = REPO_ROOT / "skills"
 
+SANDBOX = os.environ.get("AGIDISTILLER_SANDBOX") == "1"
+"""沙箱模式：假装本机没装 WorkBuddy（CI 就是这种环境）。
+
+自验必须能在这种环境下同样全绿 —— 否则本机绿、CI 红，而必然红的门禁等于没有门禁。
+"""
+
 DEFAULT_TARGET = Path.home() / ".workbuddy" / "skills"
+
+
+def channel_available(target: Path | None = None) -> bool:
+    """WorkBuddy 通道在这台机器上是否成立（目录存在）。
+
+    沙箱下恒为 False —— 但**不改写 DEFAULT_TARGET 的值**。
+    沙箱要模拟的是"资源不存在"，不是"路径变了"：改路径会连带让比对路径的判据（D21）必然红，
+    那是用一个新故障去演示旧故障。
+    """
+    if SANDBOX:
+        return False
+    return (target or DEFAULT_TARGET).is_dir()
 CACHE_NAME = ".skill-list-cache.json"
 BACKUP_ROOT_NAME = "skills-backup-agidistiller"
 

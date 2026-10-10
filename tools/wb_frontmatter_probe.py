@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import tempfile
@@ -41,7 +42,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-EVIDENCE = ROOT / "tools" / "wb_field_evidence.json"
+SANDBOX = os.environ.get("AGIDISTILLER_SANDBOX") == "1"
+"""沙箱模式：假装本机什么都没有（CI 就是这种环境）。
+
+用来复现「在没有 WorkBuddy 的机器上跑自验」这一幕 —— 否则自验会依赖本机真实资源而通过，
+CI 上却必然红。一个必然红的门禁等于没有门禁，还会掩盖真漂移。
+"""
 
 # 客户端 skill 加载器所在的 bundle。按安装位置从常见到罕见排序，允许环境变量覆盖。
 BUNDLE_CANDIDATES = [
@@ -84,6 +90,8 @@ def _expand(p: str) -> list[Path]:
 
 
 def find_bundle(explicit: str | None = None) -> Path | None:
+    if SANDBOX and not explicit:
+        return None
     if explicit:
         p = Path(explicit)
         return p if p.is_file() else None
@@ -283,23 +291,27 @@ def cmd_self_test() -> int:
         except RuntimeError:
             cases.append(("缺 parseSkillFile 时报错而非静默", True))
 
-        # 变异 5：bundle 换了版本（size 变了）→ 过期检测必须发现
-        ev5 = json.loads(EVIDENCE.read_text(encoding="utf-8")) if EVIDENCE.is_file() else None
-        if ev5:
-            ev5["bundle_bytes"] = ev5["bundle_bytes"] + 1
-            cases.append(("客户端升级后证据标记为过期", evidence_is_stale(ev5) is True))
-            cases.append(("未变动的证据不算过期", evidence_is_stale(
-                json.loads(EVIDENCE.read_text(encoding="utf-8"))) is False))
-        else:
-            print("  SKIP  过期检测（本机尚无证据文件，先跑一次取证）")
+        # 变异 5：bundle 换了版本（size / mtime 变了）→ 过期检测必须发现。
+        # 用自造 fixture 而不是真实证据文件 —— 真实 bundle 只在装了 WorkBuddy 的机器上存在，
+        # 依赖它会让这两条在 CI 上必然红，而必然红的门禁等于没有门禁（还会掩盖真漂移）。
+        fb = tmp / "real-bundle.js"
+        fb.write_text(base, encoding="utf-8")
+        rec = fb.stat()
+        fresh = {"bundle": str(fb), "bundle_bytes": rec.st_size,
+                 "bundle_mtime_epoch": round(rec.st_mtime, 3)}
+        cases.append(("未变动的证据不算过期", evidence_is_stale(dict(fresh)) is False))
+        bigger = dict(fresh, bundle_bytes=rec.st_size + 1)
+        cases.append(("bundle 变大 → 判为过期", evidence_is_stale(bigger) is True))
+        # mtime 变了但 size 没变（就地热更新）：也必须抓到
+        newer = dict(fresh, bundle_mtime_epoch=round(rec.st_mtime, 3) + 5.0)
+        cases.append(("bundle mtime 变了 → 判为过期", evidence_is_stale(newer) is True))
+        # bundle 不在本机（CI 就是这种）：必须说"无从判断"，而不是谎报过期或谎报新鲜
+        cases.append(("bundle 不在本机时承认无从判断",
+                      evidence_is_stale({"bundle": str(tmp / "nope.js"),
+                                         "bundle_bytes": 1,
+                                         "bundle_mtime_epoch": 0.0}) is None))
 
-        # 变异 6：bundle 不在本机（别人机器上）→ 无从判断，返回 None 而不是瞎猜
-        ev6 = json.loads(EVIDENCE.read_text(encoding="utf-8")) if EVIDENCE.is_file() else None
-        if ev6:
-            ev6["bundle"] = "/no/such/bundle.js"
-            cases.append(("bundle 不在本机时承认无从判断", evidence_is_stale(ev6) is None))
-
-        # 变异 7：} 不配对（截断）不崩且不误判为「全部不支持」
+        # 变异 6：} 不配对（截断）不崩且不误判为「全部不支持」
         try:
             run(base[: base.index("return{") + 20], ["name"])
             cases.append(("截断的 bundle 不静默通过", False))

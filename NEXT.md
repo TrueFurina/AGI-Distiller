@@ -15,7 +15,7 @@
 | 生产级 skill | 22 |
 | ATOMCODE 规则 | 14 节 |
 | 落盘蒸馏笔记 | 12（`sources/**/*.md`） |
-| CI | `.github/workflows/golden-regression.yml` — 6 个 job（doc-consistency / distill-pipeline / skill-tags / workbuddy-sync / graders-smoke / mock-regression） |
+| CI | `.github/workflows/golden-regression.yml` — 7 个 job（doc-consistency / distill-pipeline / skill-tags / workbuddy-sync / sandbox-parity / graders-smoke / mock-regression） |
 | WorkBuddy 通道 | 22/22 在位（`python tools/workbuddy_skills.py --check`；数字由判据 D25 盯着，不可手写） |
 | 版本 | `0.1.0`（未打 tag） |
 
@@ -403,6 +403,30 @@ P0.7 段落里的清算表格就是靠本轮的取证写成的。
 把 `meta:{allowedTools:'no'}` 这种**嵌套对象里的同名字段**也算成"被读取"——
 那种误报比漏报更坏，它会给一个死字段发通行证。改为按括号深度只收 depth==1 的 key，
 并补了回归用例。`--self-test` 正是先抓出了写它的人。
+
+## P0.11 · 「本机绿、CI 红」有了可复现的测试 ✅ 本轮完成（2026-10-10）
+
+上一轮推送后 CI 又红了一次，而且**红的位置正是本轮新加的东西** —— 这比"别人的会话推坏了"更该反省：
+
+| 失败 | 根因 |
+|---|---|
+| `doc-consistency` / D25 | 判据拿 `~/.workbuddy/skills/` 的实测结果去比文档，CI 上没有这个目录 → 判成 `0/22` → **必然红** |
+| `workbuddy-sync` / 取证器自验 | 过期检测的两条用例读**真实证据文件 + 真实 bundle**，CI 上 bundle 不存在 → `is_stale` 返回 `None`，两条断言都落空 |
+
+**共同点：把「查不到」当成了「0 / 否」。** 一个必然红的门禁比没有门禁更糟 —— 它不只拦不住东西，
+还会把真失败一起淹没在红里。所以不是改数字，是改语义：
+
+| 动作 | 验收证据 |
+|---|---|
+| D25 改两档核验 | 分母（本仓 skill 数）任何环境都验；分子（本机在位）**没装就说"未核验"，不谎报 0** |
+| 取证器自验去本机依赖 | 过期检测改用自造 fixture bundle（size 变 / mtime 变 / bundle 缺失三档），不再读真实证据；自验 **14/14**，含"无从判断"档 |
+| 新增 `AGIDISTILLER_SANDBOX=1` | 假装本机没装 WorkBuddy、没有客户端 bundle。沙箱**只让资源消失，不改路径值** —— 改路径会连带让比路径的 D21 必然红，那是用新故障演示旧故障 |
+| CI 新增第 7 个 job `sandbox-parity` | 沙箱下跑全套机验（`workbuddy_skills` / `wb_frontmatter_probe` / 25 条判据）必须全绿；正常环境与沙箱环境**两档都绿**才算过 |
+
+同步器新增 `channel_available()` 作为「通道是否成立」的唯一入口，判据不再自己判断目录在不在 ——
+**判断环境的能力归工具，判据只消费结论**，否则同一个判断会在两处各漂一次。
+
+`CONTRIBUTING.md` 增补一条纪律：自验用例里不许读真实本机路径，要什么就自己造 fixture。
 
 ## 停止条件
 
