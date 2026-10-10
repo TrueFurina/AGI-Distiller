@@ -132,8 +132,13 @@ def read_drafts(d: Path) -> dict[str, dict]:
 
 
 def index_available(p: Path | None = None) -> bool:
-    """蒸馏索引在这台机器上是否可读。沙箱下恒 False（但路径值不变）。"""
-    if SANDBOX:
+    """蒸馏索引在这台机器上是否可读。
+
+    沙箱下**只屏蔽"默认的本机索引"**，显式指定的路径照常读 ——
+    否则沙箱会把自验自己的 fixture 一起屏蔽掉，27 条用例在 CI 上直接崩一半。
+    （沙箱要模拟的是"这台机器上没有那个目录"，不是"这个路径读不了"。）
+    """
+    if SANDBOX and p is None:
         return False
     return (p or DEFAULT_INDEX).is_file()
 
@@ -433,7 +438,11 @@ def self_test() -> int:
         cases.append(("G1 违反被抓出", r["bare"] is not None and len(r["bare"]) == 1))
         cases.append(("G1 违反触发报警", check(idx4) != 0))
 
-        # 变异 9：索引不可读（CI / 沙箱）→ 不得把「查不到」当成「都没入索引」
+        # 变异 9：**显式**给的索引路径必须照常读 ——
+        # 沙箱只屏蔽"默认的本机索引"，若连 fixture 一起屏蔽，自验会在 CI 上成片崩
+        cases.append(("显式索引路径不被沙箱屏蔽", index_available(idx) is True))
+
+        # 变异 10：索引不可读（CI / 沙箱）→ 不得把「查不到」当成「都没入索引」
         r = scan(tmp / "done", tmp / "drafts", tmp / "pending", tmp / "nope.md")
         cases.append(("索引不可读时返回 None", r["index"] is None))
         cases.append(("索引不可读时不谎报 index_only", r["index_only"] == []))

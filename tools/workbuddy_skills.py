@@ -68,11 +68,13 @@ DEFAULT_TARGET = Path.home() / ".workbuddy" / "skills"
 def channel_available(target: Path | None = None) -> bool:
     """WorkBuddy 通道在这台机器上是否成立（目录存在）。
 
-    沙箱下恒为 False —— 但**不改写 DEFAULT_TARGET 的值**。
-    沙箱要模拟的是"资源不存在"，不是"路径变了"：改路径会连带让比对路径的判据（D21）必然红，
-    那是用一个新故障去演示旧故障。
+    沙箱下**只在没显式给 target 时**为 False —— 但**不改写 DEFAULT_TARGET 的值**。
+    - 不改写路径值：沙箱要模拟的是"资源不存在"，不是"路径变了"。改路径会连带让
+      比对路径的判据（D21）必然红，那是用一个新故障去演示旧故障。
+    - 豁免显式 target：否则沙箱会把自验自己的 fixture 一起屏蔽 ——
+      `wechat_queue.py` 就在这上面栽过一次，27 条用例在 CI 上崩了一半。
     """
-    if SANDBOX:
+    if SANDBOX and target is None:
         return False
     return (target or DEFAULT_TARGET).is_dir()
 CACHE_NAME = ".skill-list-cache.json"
@@ -433,6 +435,13 @@ def cmd_self_test() -> int:
         (src / "alpha" / "refs" / "note.md").write_text("ref\n", encoding="utf-8")
         target = tmpdir / "wb" / "skills"
         target.mkdir(parents=True)
+
+        # 0. 环境判定必须尊重**显式给的** target。
+        #    沙箱（AGIDISTILLER_SANDBOX=1）只屏蔽"默认的本机目录"；若连 fixture 一起屏蔽，
+        #    自验会在 CI 上成片崩 —— wechat_queue.py 就在这上面栽过，27 条用例崩掉 8 条。
+        cases.append(("显式 target 按真实存在性判定（不被沙箱开关误伤）",
+                      channel_available(target) is True
+                      and channel_available(target / "nope") is False))
 
         global SRC_DIR
         saved_src = SRC_DIR
