@@ -66,6 +66,18 @@ FALLBACK_ROOTS = [
 
 PARSE_FN = "async parseSkillFile("
 
+# 从 frontmatter 对象里取值的标志调用。客户端里**不止一处**把 skill 的 SKILL.md
+# 解析成对象：一处是 `parseSkillFile`（供列表/注入用，返回 instructions 等），
+# 另一处是「skill → slash command」的转换（返回 prompt / argumentHint 等）。
+FRONTMATTER_MARK = "extractFrontMatterWithContent("
+# 从标志调用往后扫多远找它的 return 对象。取 4000 是因为真实 bundle 里
+# 解析与 return 同在一行（那一行有好几万字符），窄了会够不着。
+MARK_WINDOW = 4000
+
+# 判定「这个 return 是 skill 的」所需的最小特征。命中任一即认为该解析点是 skill 路径。
+# 取这几个是因为它们是 skill 独有的：普通 markdown frontmatter 解析不会返回它们。
+SKILL_MARKERS = {"allowedTools", "skillId", "skillVersion", "userInvocable", "baseDirectory"}
+
 
 def _expand(p: str) -> list[Path]:
     """把 ${VAR} 展开成本机路径；变量缺失则当作普通字符串处理。"""
@@ -106,29 +118,77 @@ def find_bundle(explicit: str | None = None) -> Path | None:
     return None
 
 
-def extract_return_keys(text: str, fn: str = PARSE_FN) -> set[str] | None:
-    """从 parseSkillFile 的实现里取出它 return 的对象顶层 key。
+def _all_return_bodies(text: str, start: int, end: int) -> list[str]:
+    """在 [start, end) 区间里找出所有 `return{...}` 的对象体（花括号配对）。"""
+    bodies: list[str] = []
+    end = min(end, len(text))  # 截断的 bundle 会让传入的窗口超出实际长度
+    pos = start
+    while True:
+        j = text.find("return{", pos, end)
+        if j < 0:
+            break
+        depth = 0
+        for k in range(j + len("return"), end):
+            if text[k] == "{":
+                depth += 1
+            elif text[k] == "}":
+                depth -= 1
+                if depth == 0:
+                    bodies.append(text[j + len("return") : k + 1])
+                    break
+        pos = j + len("return{")
+    return bodies
 
-    只看 top-level key：嵌套对象（如 `source: ea`）不参与判定，
-    展开式（`...eD?{...}:{}`）也不参与——它们是条件字段，不是稳定的读取行为。
+
+def extract_frontmatter_return_keys(text: str) -> tuple[set[str], int] | None:
+    """取**所有**把 skill frontmatter 解析成对象那几处的 return 顶层 key 并集。
+
+    为什么不能只看一处
+    ------------------
+    第一版只看 `parseSkillFile` 的**第一个** return，于是把「这一处没搬 `argumentHint`」
+    判成了「字段没人读」。而客户端还有第二条路径（skill → slash command 转换），
+    它明明白白写着 `argumentHint: ep["argument-hint"]`。
+
+    这是本仓库第四次犯同一类病 —— **把「我没看到」当成「它不存在」**：
+    ① D25 把查不到当成 0；② probe 自验依赖真实 bundle；③ 沙箱屏蔽自己的 fixture。
+    判据/取证工具最忌这种沉默：它产出的是一份看着很硬、实际是漏看的证据。
+
+    返回 (keys, 解析点数量)；一处都定位不到则返回 None（宁可报错，也不假装"都不支持"）。
     """
-    i = text.find(fn)
-    if i < 0:
+    keys: set[str] = set()
+    sites = 0
+
+    # 通道 A：parseSkillFile 的 return（保留旧行为，兼容）
+    i = text.find(PARSE_FN)
+    if i >= 0:
+        j = text.find("return{", i)
+        if j >= 0:
+            bodies = _all_return_bodies(text, j, j + MARK_WINDOW)
+            if bodies:
+                keys |= _top_level_keys(bodies[0])
+                sites += 1
+
+    # 通道 B：从 frontmatter 取值的解析点里，只收**确实是 skill** 的那些。
+    # 客户端拿同一套 frontmatter 解析器读 AGENTS.md / CLAUDE.md / memory 文件，
+    # 那些解析点会返回 globs / alwaysApply / agents / MANUAL 之类 —— 把它们算进来，
+    # 等于拿别的文件的字段给 skill 的字段发通行证。**误报比漏报更坏**：
+    # 漏报只是"没看到"，误报会给死字段盖上"已支持"的章。
+    pos = 0
+    while True:
+        m = text.find(FRONTMATTER_MARK, pos)
+        if m < 0:
+            break
+        win_end = min(len(text), m + MARK_WINDOW)
+        for body in _all_return_bodies(text, m, win_end):
+            ks = _top_level_keys(body)
+            if ks & SKILL_MARKERS:
+                keys |= ks
+                sites += 1
+        pos = m + len(FRONTMATTER_MARK)
+
+    if not sites:
         return None
-    j = text.find("return{", i)
-    if j < 0:
-        return None
-    # 花括号配对，取 return 的对象体
-    depth = 0
-    for k in range(j + len("return"), len(text)):
-        if text[k] == "{":
-            depth += 1
-        elif text[k] == "}":
-            depth -= 1
-            if depth == 0:
-                body = text[j + len("return") : k + 1]
-                return _top_level_keys(body)
-    return None
+    return keys, sites
 
 
 def _top_level_keys(body: str) -> set[str]:
@@ -158,6 +218,12 @@ def _top_level_keys(body: str) -> set[str]:
 
 
 # frontmatter 里的写法 → parseSkillFile 返回体里的属性名（只登记需要改写的，其余同名）
+# 除本仓在写的字段外，还固定盯这几个 —— 它们曾在本仓出现过、因「客户端不读」被删。
+# 盯着不是想改回去，而是让那次删除**可复验**：客户端哪天开始读了，证据文件会立刻翻脸，
+# 而不是让「我们删过它」这个历史结论一直当现状用。
+EXTRA_WATCH = ["max-turns", "disallowed-tools"]
+
+
 KEY_ALIAS = {
     "allowed-tools": "allowedTools",
     "argument-hint": "argumentHint",
@@ -185,10 +251,16 @@ def repo_frontmatter_fields() -> list[str]:
 def probe(bundle: Path, fields: list[str] | None = None) -> dict:
     raw = bundle.read_bytes()
     text = raw.decode("utf-8", errors="replace")
-    keys = extract_return_keys(text)
-    if keys is None:
-        raise RuntimeError(f"{bundle}: 找不到 {PARSE_FN!r} 或其 return 对象（客户端改版了？）")
-    fields = fields if fields is not None else repo_frontmatter_fields()
+    got = extract_frontmatter_return_keys(text)
+    if got is None:
+        raise RuntimeError(f"{bundle}: 定位不到 skill frontmatter 的解析点/return 对象"
+                           f"（客户端改版了？）")
+    keys, sites = got
+    if fields is None:
+        fields = repo_frontmatter_fields()
+        for f in EXTRA_WATCH:
+            if f not in fields:
+                fields.append(f)
     rec = bundle.stat()
     return {
         "bundle": str(bundle),
@@ -202,6 +274,9 @@ def probe(bundle: Path, fields: list[str] | None = None) -> dict:
             "%Y-%m-%dT%H:%M:%SZ"),
         "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "return_keys": sorted(keys),
+        # 有几处把 skill frontmatter 解析成对象。只找到 1 处时结论是**不完整**的，
+        # 记下来，让人一眼看出证据覆盖了几条路径。
+        "parse_sites": sites,
         "fields": {
             f: {"read": KEY_ALIAS.get(f, f) in keys, "as": KEY_ALIAS.get(f, f)}
             for f in fields
@@ -239,6 +314,9 @@ def cmd_probe(args: argparse.Namespace) -> int:
     print(f"来源：{ev['bundle']}")
     print(f"      sha256 {hashlib.sha256(Path(ev['bundle']).read_bytes()).hexdigest()[:16]}…"
           f"  {ev['bundle_bytes']:,} 字节（摘要不落盘，避开密钥扫描误报）")
+    n = ev.get("parse_sites", 1)
+    tail = "" if n >= 2 else f"  ⚠️ 只定位到 {n} 处解析点，覆盖可能不完整"
+    print(f"      frontmatter 解析点 {n} 处{tail}")
     print(f"      parser return keys: {', '.join(ev['return_keys'])}\n")
     for f, info in ev["fields"].items():
         mark = "✅ 被读取" if info["read"] else "❌ 未被读取（写了不生效）"
@@ -290,6 +368,34 @@ def cmd_self_test() -> int:
             cases.append(("缺 parseSkillFile 时报错而非静默", False))
         except RuntimeError:
             cases.append(("缺 parseSkillFile 时报错而非静默", True))
+
+        # 变异 4b：客户端有**两处** skill frontmatter 解析（列表注入 / skill→slash command），
+        # 第二处才搬 argument-hint。只看第一处会把「没看到」判成「没读取」——
+        # 这正是第一版取证犯的错（它据此把 argument-hint 标成"写了不生效"）。
+        two_site = (
+            "class X{async parseSkillFile(L,ei){try{let a=1;return{name:a,id:'i',"
+            "description:'d',instructions:'x',allowedTools:e}}catch(e){return}}}"
+            "function skillToCommand(L){let ea=MarkdownUtils.extractFrontMatterWithContent(L);"
+            "let ep=ea.data;return{name:'n',prompt:ea.content,allowedTools:1,"
+            "argumentHint:ep['argument-hint']?.trim()||'',requiredVariables:[],scope:'s'}}"
+        )
+        ev2 = run(two_site, ["argument-hint", "allowed-tools"])
+        cases.append(("第二处解析点搬运的字段也算已读", ev2["fields"]["argument-hint"]["read"]))
+        cases.append(("两处并集后解析点数 >= 2", ev2.get("parse_sites", 0) >= 2))
+        # 反向：删掉第二处解析点 → 必须翻回「未读」，否则这条用例是恒真的
+        one_site = two_site[: two_site.index("function skillToCommand")]
+        cases.append(("只剩第一处时 argument-hint 翻为未读",
+                      not run(one_site, ["argument-hint"])["fields"]["argument-hint"]["read"]))
+
+        # 变异 4c：客户端拿同一套解析器读 AGENTS.md / memory 之类的 markdown frontmatter，
+        # 那些返回体（globs / alwaysApply / ...）不是 skill 的字段集。混进来就会拿别处
+        # 的字段给 skill 发通行证 —— 比漏看更坏。这里在"别的解析点"里塞个 maxTurns 试探。
+        mixed = two_site + (
+            "function readMemoryFile(L){let ea=MarkdownUtils.extractFrontMatterWithContent(L);"
+            "return{type:'memory',globs:1,alwaysApply:1,maxTurns:99}}"
+        )
+        cases.append(("非 skill 的 frontmatter 解析点不算数",
+                      not run(mixed, ["max-turns"])["fields"]["max-turns"]["read"]))
 
         # 变异 5：bundle 换了版本（size / mtime 变了）→ 过期检测必须发现。
         # 用自造 fixture 而不是真实证据文件 —— 真实 bundle 只在装了 WorkBuddy 的机器上存在，

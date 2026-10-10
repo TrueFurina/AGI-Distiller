@@ -3,11 +3,12 @@
   "bundle_bytes": 11938885,
   "bundle_mtime_epoch": 1791105172.0,
   "bundle_mtime": "2026-10-04T09:12:52Z",
-  "fetched_at": "2026-10-09T16:56:18Z",
+  "fetched_at": "2026-10-10T01:43:23Z",
   "return_keys": [
     "agent",
     "agentCreated",
     "allowedTools",
+    "argumentHint",
     "baseDirectory",
     "color",
     "context",
@@ -19,11 +20,16 @@
     "location",
     "model",
     "name",
+    "prompt",
+    "requiredVariables",
+    "scope",
     "skillId",
     "skillVersion",
     "source",
+    "tags",
     "userInvocable"
   ],
+  "parse_sites": 4,
   "fields": {
     "name": {
       "read": true,
@@ -34,7 +40,7 @@
       "as": "description"
     },
     "argument-hint": {
-      "read": false,
+      "read": true,
       "as": "argumentHint"
     },
     "context": {
@@ -48,6 +54,14 @@
     "allowed-tools": {
       "read": true,
       "as": "allowedTools"
+    },
+    "max-turns": {
+      "read": false,
+      "as": "maxTurns"
+    },
+    "disallowed-tools": {
+      "read": false,
+      "as": "disallowed-tools"
     }
   }
 }
