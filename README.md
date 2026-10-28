@@ -1,6 +1,6 @@
 # 🧪 AGI Distiller
 
-> **版权声明 Copyright**：© 2026 All Rights Reserved. 未经作者书面许可，禁止复制、修改、分发、商用、用于各类学科竞赛。
+> **版权与许可 Copyright & License**：© 2026 TrueFurina，本项目以 [MIT 许可证](LICENSE) 发布——可自由使用、修改、分发与商用。用于学科竞赛或论文时，欢迎注明来源与仓库链接（此为礼貌请求，不构成 MIT 之外的额外限制）。
 >
 > **Knowledge Distillation System for AI Coding Agents**
 >
