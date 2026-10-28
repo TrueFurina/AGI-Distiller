@@ -11,3 +11,13 @@ __pycache__/
 # 曾被跟踪（git add -A 顺手带进来），导致每跑一次 pipeline 工作区就假脏一次。
 # 日志是运行痕迹不是资产——需要留痕的结论应写进 notes / index.json。
 *.log
+
+# ── 密钥与凭据（禁止入库）────────────────────────────────────
+# 原则：密钥只能放环境变量或密钥管理器。
+# 注意：golden/cases/memory-no-secrets.yaml 中的 sk-prod-... 为伪造测试数据。
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
