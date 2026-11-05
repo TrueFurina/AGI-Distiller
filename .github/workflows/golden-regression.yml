@@ -23,6 +23,7 @@ on:
       - '**.txt'
       - '**.toml'
       - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [main]
     paths:
@@ -36,6 +37,7 @@ on:
       - '**.txt'
       - '**.toml'
       - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
 
 jobs:
